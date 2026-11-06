@@ -9,7 +9,8 @@ class MemoryRepository implements ConversationRepository {
   bool failWrites = false;
   int writes = 0;
   @override
-  Future<List<Conversation>> load() async => saved.map(Conversation.fromJson).toList();
+  Future<List<Conversation>> load() async =>
+      saved.map(Conversation.fromJson).toList();
   @override
   Future<void> saveAll(List<Conversation> conversations) async {
     if (failWrites) throw const StorageFailure('Disk unavailable');
@@ -17,17 +18,28 @@ class MemoryRepository implements ConversationRepository {
     saved = conversations.map(Conversation.fromJson).toList();
   }
 }
+
 class MemoryCredentials implements CredentialStore {
   final Map<CloudProvider, String> values = {};
   @override
   Future<String?> read(CloudProvider provider) async => values[provider];
   @override
-  Future<void> save(CloudProvider provider, String key) async { values[provider] = key; }
+  Future<void> save(CloudProvider provider, String key) async {
+    values[provider] = key;
+  }
+
   @override
-  Future<void> delete(CloudProvider provider) async { values.remove(provider); }
+  Future<void> delete(CloudProvider provider) async {
+    values.remove(provider);
+  }
 }
+
 class ScriptedEngine implements AiEngine {
-  ScriptedEngine({this.kind = EngineKind.openAi, this.available = true, this.models = const ['test-model']});
+  ScriptedEngine({
+    this.kind = EngineKind.openAi,
+    this.available = true,
+    this.models = const ['test-model'],
+  });
   @override
   final EngineKind kind;
   final bool available;
@@ -36,11 +48,16 @@ class ScriptedEngine implements AiEngine {
   @override
   String get displayName => 'Test engine';
   @override
-  Future<EngineProbe> probe({String? apiKey}) async => EngineProbe(available: available, message: 'Test probe', models: models);
+  Future<EngineProbe> probe({String? apiKey}) async =>
+      EngineProbe(available: available, message: 'Test probe', models: models);
   @override
   Future<AiReply> complete(AiRequest request) async {
     calls++;
     request.cancelToken.throwIfCancelled();
-    return AiReply(content: 'Engine result', model: request.model, engineLabel: displayName);
+    return AiReply(
+      content: 'Engine result',
+      model: request.model,
+      engineLabel: displayName,
+    );
   }
 }

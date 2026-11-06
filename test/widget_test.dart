@@ -18,52 +18,97 @@ import 'fakes.dart';
 
 void main() {
   Future<void> pumpApp(WidgetTester tester, Size size) async {
-    tester.view.physicalSize = size; tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     SharedPreferences.setMockInitialValues({});
-    final settings = SettingsController(repository: SettingsRepository(await SharedPreferences.getInstance()),
-      credentials: MemoryCredentials(), initial: const AppSettings(reduceMotion: true));
+    final settings = SettingsController(
+      repository: SettingsRepository(await SharedPreferences.getInstance()),
+      credentials: MemoryCredentials(),
+      initial: const AppSettings(reduceMotion: true),
+    );
     final repository = MemoryRepository();
-    final router = EngineRouter(credentials: MemoryCredentials(), http: HttpJsonClient(() => MockClient((_) async => http.Response('{}', 503))));
+    final router = EngineRouter(
+      credentials: MemoryCredentials(),
+      http: HttpJsonClient(
+        () => MockClient((_) async => http.Response('{}', 503)),
+      ),
+    );
     final availability = AvailabilityController(router, MemoryCredentials());
-    final chats = ConversationController(repository: repository, router: router, settings: () => settings.settings);
+    final chats = ConversationController(
+      repository: repository,
+      router: router,
+      settings: () => settings.settings,
+    );
     await chats.initialize();
     final voice = VoiceController();
-    addTearDown(() { voice.dispose(); chats.dispose(); availability.dispose(); settings.dispose(); });
-    await tester.pumpWidget(MultiProvider(providers: [
-      ChangeNotifierProvider.value(value: settings), ChangeNotifierProvider.value(value: availability),
-      ChangeNotifierProvider.value(value: chats), ChangeNotifierProvider.value(value: voice),
-    ], child: MaterialApp(theme: OpenUsTheme.build(settings.settings), home: const HomeShell())));
-    await tester.pump(); await tester.pump(const Duration(milliseconds: 50));
+    addTearDown(() {
+      voice.dispose();
+      chats.dispose();
+      availability.dispose();
+      settings.dispose();
+    });
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: settings),
+          ChangeNotifierProvider.value(value: availability),
+          ChangeNotifierProvider.value(value: chats),
+          ChangeNotifierProvider.value(value: voice),
+        ],
+        child: MaterialApp(
+          theme: OpenUsTheme.build(settings.settings),
+          home: const HomeShell(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
   }
-  testWidgets('desktop foundation renders and settings are accessible without overflow', (tester) async {
-    await pumpApp(tester, const Size(1280, 900));
-    expect(find.text('Bienvenue dans OPENUS.'), findsOneWidget);
-    expect(find.text('Moteur non configuré'), findsWidgets);
-    expect(tester.takeException(), isNull);
-    await tester.tap(find.text('Paramètres'));
-    await tester.pump(); await tester.pump(const Duration(milliseconds: 350));
-    expect(find.text('Moteurs IA'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets('small Android layout opens history and reports no connected engine', (tester) async {
-    await pumpApp(tester, const Size(360, 740));
-    expect(find.text('Bienvenue dans OPENUS.'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    await tester.tap(find.byTooltip('Ouvrir le menu'));
-    await tester.pump(); await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.text('Conversations'));
-    await tester.pump(); await tester.pump(const Duration(milliseconds: 350));
-    expect(find.text('Vos conversations'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets('sending without an engine yields an explicit error, not a simulated reply', (tester) async {
-    await pumpApp(tester, const Size(1280, 900));
-    await tester.enterText(find.byType(TextField), 'Bonjour OPENUS');
-    await tester.tap(find.byTooltip('Envoyer le message'));
-    await tester.pump(); await tester.pump(); await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Bonjour OPENUS'), findsOneWidget);
-    expect(find.textContaining('Aucun moteur disponible.'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+
+  testWidgets(
+    'desktop foundation renders and settings are accessible without overflow',
+    (tester) async {
+      await pumpApp(tester, const Size(1280, 900));
+      expect(find.text('Bienvenue dans OPENUS.'), findsOneWidget);
+      expect(find.text('Moteur non configuré'), findsWidgets);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Paramètres'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Moteurs IA'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'small Android layout opens history and reports no connected engine',
+    (tester) async {
+      await pumpApp(tester, const Size(360, 740));
+      expect(find.text('Bienvenue dans OPENUS.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.byTooltip('Ouvrir le menu'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.tap(find.text('Conversations'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('Vos conversations'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'sending without an engine yields an explicit error, not a simulated reply',
+    (tester) async {
+      await pumpApp(tester, const Size(1280, 900));
+      await tester.enterText(find.byType(TextField), 'Bonjour OPENUS');
+      await tester.tap(find.byTooltip('Envoyer le message'));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Bonjour OPENUS'), findsOneWidget);
+      expect(find.textContaining('Aucun moteur disponible.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

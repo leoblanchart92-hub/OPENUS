@@ -13,19 +13,33 @@ class EngineSelection {
   final AiEngine engine;
   final String model;
   final String? _apiKey;
-  AiRequest request(List<ChatMessage> messages, String prompt, AiCancelToken token) =>
-      AiRequest(model: model, messages: messages, systemPrompt: prompt, apiKey: _apiKey, cancelToken: token);
+  AiRequest request(
+    List<ChatMessage> messages,
+    String prompt,
+    AiCancelToken token,
+  ) => AiRequest(
+    model: model,
+    messages: messages,
+    systemPrompt: prompt,
+    apiKey: _apiKey,
+    cancelToken: token,
+  );
   @override
   String toString() => '${engine.displayName} / $model'; // Never expose credentials.
 }
 
 class EngineRouter {
-  const EngineRouter({required this.credentials, required this.http, this.onProbe});
+  const EngineRouter({
+    required this.credentials,
+    required this.http,
+    this.onProbe,
+  });
   final CredentialStore credentials;
   final HttpJsonClient http;
   final void Function(EngineKind, EngineProbe)? onProbe;
 
-  OllamaEngine localEngine(String endpoint) => OllamaEngine(baseUrl: endpoint, http: http);
+  OllamaEngine localEngine(String endpoint) =>
+      OllamaEngine(baseUrl: endpoint, http: http);
 
   AiEngine cloudEngine(CloudProvider provider) => switch (provider) {
     CloudProvider.openAi => OpenAiEngine(http),
@@ -38,43 +52,69 @@ class EngineRouter {
     String? localIssue;
     if (settings.mode != AiMode.internet) {
       if (settings.localConfigured) {
-        final engine = OllamaEngine(baseUrl: settings.localEndpoint, http: http);
+        final engine = OllamaEngine(
+          baseUrl: settings.localEndpoint,
+          http: http,
+        );
         try {
           final probe = await engine.probe();
           onProbe?.call(EngineKind.local, probe);
           if (probe.models.contains(settings.localModel.trim())) {
             return EngineSelection(engine, settings.localModel.trim(), null);
           }
-          localIssue = 'Le modèle local « ${settings.localModel} » n’est pas installé dans Ollama.';
+          localIssue =
+              'Le modèle local « ${settings.localModel} » n’est pas installé dans Ollama.';
         } on AiException catch (error) {
           localIssue = error.message;
-          onProbe?.call(EngineKind.local, EngineProbe(available: false, message: error.message));
+          onProbe?.call(
+            EngineKind.local,
+            EngineProbe(available: false, message: error.message),
+          );
         }
       } else {
-        localIssue = settings.endpointError ?? 'Choisissez un modèle local installé.';
+        localIssue =
+            settings.endpointError ?? 'Choisissez un modèle local installé.';
       }
       if (settings.mode == AiMode.local) throw AiException(localIssue);
     }
     if (settings.mode != AiMode.local && settings.cloudConfigured) {
       final key = await credentials.read(settings.provider);
       if (key != null && key.isNotEmpty) {
-        return EngineSelection(cloudEngine(settings.provider), settings.cloudModel.trim(), key);
+        return EngineSelection(
+          cloudEngine(settings.provider),
+          settings.cloudModel.trim(),
+          key,
+        );
       }
     }
     if (settings.mode == AiMode.internet) {
-      throw const AiException('IA Internet non configurée. Choisissez un modèle et enregistrez une clé API valide.');
+      throw const AiException(
+        'IA Internet non configurée. Choisissez un modèle et enregistrez une clé API valide.',
+      );
     }
-    throw AiException(settings.mode == AiMode.automatic
-        ? 'Aucun moteur disponible. ${localIssue ?? ''} Configurez Ollama ou un fournisseur Internet dans les paramètres.'
-        : localIssue ?? 'Aucun moteur configuré.');
+    throw AiException(
+      settings.mode == AiMode.automatic
+          ? 'Aucun moteur disponible. ${localIssue ?? ''} Configurez Ollama ou un fournisseur Internet dans les paramètres.'
+          : localIssue ?? 'Aucun moteur configuré.',
+    );
   }
 
-  Future<AiReply> complete(AppSettings settings, Conversation conversation, AiCancelToken token) async {
+  Future<AiReply> complete(
+    AppSettings settings,
+    Conversation conversation,
+    AiCancelToken token,
+  ) async {
     final selection = await resolve(settings);
     token.throwIfCancelled();
-    final context = ConversationContext.build(conversation, settings.contextMessages);
-    if (context.isEmpty) throw const AiException('Le message à envoyer est vide.');
-    final reply = await selection.engine.complete(selection.request(context, settings.systemPrompt, token));
+    final context = ConversationContext.build(
+      conversation,
+      settings.contextMessages,
+    );
+    if (context.isEmpty)
+      throw const AiException('Le message à envoyer est vide.');
+    final reply = await selection.engine.complete(
+      selection.request(context, settings.systemPrompt, token),
+    );
     token.throwIfCancelled();
     return reply;
   }

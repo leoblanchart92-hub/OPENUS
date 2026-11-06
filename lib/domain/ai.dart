@@ -1,7 +1,9 @@
 import 'conversation.dart';
 
 enum AiMode { local, internet, automatic }
+
 enum CloudProvider { openAi, anthropic }
+
 enum EngineKind { local, openAi, anthropic }
 
 class AiException implements Exception {
@@ -21,15 +23,25 @@ abstract interface class AiEngine {
 }
 
 class EngineProbe {
-  const EngineProbe({required this.available, required this.message, this.models = const []});
+  const EngineProbe({
+    required this.available,
+    required this.message,
+    this.models = const [],
+  });
   final bool available;
   final String message;
   final List<String> models;
 }
 
 class AiRequest {
-  const AiRequest({required this.model, required this.messages, required this.systemPrompt,
-    required this.cancelToken, this.apiKey, this.timeout = const Duration(seconds: 120)});
+  const AiRequest({
+    required this.model,
+    required this.messages,
+    required this.systemPrompt,
+    required this.cancelToken,
+    this.apiKey,
+    this.timeout = const Duration(seconds: 120),
+  });
   final String model;
   final List<ChatMessage> messages;
   final String systemPrompt;
@@ -39,7 +51,11 @@ class AiRequest {
 }
 
 class AiReply {
-  const AiReply({required this.content, required this.model, required this.engineLabel});
+  const AiReply({
+    required this.content,
+    required this.model,
+    required this.engineLabel,
+  });
   final String content;
   final String model;
   final String engineLabel;
@@ -52,16 +68,25 @@ class AiCancelToken {
   bool get isCancelled => _cancelled;
 
   void addListener(void Function() listener) {
-    if (_cancelled) { listener(); } else { _listeners.add(listener); }
+    if (_cancelled) {
+      listener();
+    } else {
+      _listeners.add(listener);
+    }
   }
+
   void removeListener(void Function() listener) => _listeners.remove(listener);
   void cancel() {
     if (_cancelled) return;
     _cancelled = true;
-    for (final listener in List.of(_listeners)) { listener(); }
+    for (final listener in List.of(_listeners)) {
+      listener();
+    }
     _listeners.clear();
   }
+
   void throwIfCancelled() {
-    if (_cancelled) throw const AiException('Génération annulée.', cancelled: true);
+    if (_cancelled)
+      throw const AiException('Génération annulée.', cancelled: true);
   }
 }

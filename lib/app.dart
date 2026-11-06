@@ -33,7 +33,10 @@ class _Services {
   VoidCallback? voiceSync;
   void dispose() {
     if (voiceSync != null) settings.removeListener(voiceSync!);
-    voice.dispose(); conversations.dispose(); availability.dispose(); settings.dispose();
+    voice.dispose();
+    conversations.dispose();
+    availability.dispose();
+    settings.dispose();
   }
 }
 
@@ -43,10 +46,16 @@ class _OpenUsBootstrapState extends State<OpenUsBootstrap> {
   String? _error;
 
   @override
-  void initState() { super.initState(); _start(); }
+  void initState() {
+    super.initState();
+    _start();
+  }
 
   Future<void> _start() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     _Services? services;
     try {
       final preferences = await SharedPreferences.getInstance();
@@ -54,49 +63,111 @@ class _OpenUsBootstrapState extends State<OpenUsBootstrap> {
       final repository = SettingsRepository(preferences);
       final loaded = repository.load();
       final credentials = SecureCredentialStore();
-      final settings = SettingsController(repository: repository, credentials: credentials,
-        initial: loaded.settings, warning: loaded.warning);
+      final settings = SettingsController(
+        repository: repository,
+        credentials: credentials,
+        initial: loaded.settings,
+        warning: loaded.warning,
+      );
       final conversationRepository = JsonConversationRepository(directory);
       late AvailabilityController availability;
-      final router = EngineRouter(credentials: credentials,
-        http: HttpJsonClient(http.Client.new), onProbe: availability.record);
+      final router = EngineRouter(
+        credentials: credentials,
+        http: HttpJsonClient(http.Client.new),
+        onProbe: availability.record,
+      );
       availability = AvailabilityController(router, credentials);
-      final conversations = ConversationController(repository: conversationRepository, router: router,
-        settings: () => settings.settings, onEngineSuccess: availability.noteSuccess);
+      final conversations = ConversationController(
+        repository: conversationRepository,
+        router: router,
+        settings: () => settings.settings,
+        onEngineSuccess: availability.noteSuccess,
+      );
       final voice = VoiceController()..configure(settings.settings);
       services = _Services(settings, availability, conversations, voice);
       services.voiceSync = () => voice.configure(settings.settings);
       settings.addListener(services.voiceSync!);
       await Future.wait([settings.initialize(), conversations.initialize()]);
-      if (!mounted) { services.dispose(); return; }
-      setState(() { _services = services; _loading = false; });
+      if (!mounted) {
+        services.dispose();
+        return;
+      }
+      setState(() {
+        _services = services;
+        _loading = false;
+      });
     } catch (_) {
       services?.dispose();
-      if (mounted) setState(() { _loading = false; _error = 'OPENUS ne peut pas ouvrir le stockage de cet appareil. Vérifiez les permissions et l’espace disponible, puis réessayez.'; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _error =
+              'OPENUS ne peut pas ouvrir le stockage de cet appareil. Vérifiez les permissions et l’espace disponible, puis réessayez.';
+        });
     }
   }
 
   @override
-  void dispose() { _services?.dispose(); super.dispose(); }
+  void dispose() {
+    _services?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final services = _services;
-    if (services == null) return MaterialApp(debugShowCheckedModeBanner: false, title: 'OPENUS',
-      theme: OpenUsTheme.build(const AppSettings()), home: Scaffold(body: Center(child: Padding(
-        padding: const EdgeInsets.all(32), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const BrandLockup(), const SizedBox(height: 40),
-            if (_loading) const CircularProgressIndicator() else const Icon(Icons.storage_outlined, size: 40, color: OpenUsColors.warning),
-            const SizedBox(height: 24), Text(_error ?? 'Ouverture de votre espace local…', textAlign: TextAlign.center),
-            if (!_loading) ...[const SizedBox(height: 24), FilledButton(onPressed: _start, child: const Text('Réessayer'))],
-          ]))))));
-    return MultiProvider(providers: [
-      ChangeNotifierProvider.value(value: services.settings),
-      ChangeNotifierProvider.value(value: services.availability),
-      ChangeNotifierProvider.value(value: services.conversations),
-      ChangeNotifierProvider.value(value: services.voice),
-    ], child: const OpenUsApp());
+    if (services == null)
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'OPENUS',
+        theme: OpenUsTheme.build(const AppSettings()),
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const BrandLockup(),
+                    const SizedBox(height: 40),
+                    if (_loading)
+                      const CircularProgressIndicator()
+                    else
+                      const Icon(
+                        Icons.storage_outlined,
+                        size: 40,
+                        color: OpenUsColors.warning,
+                      ),
+                    const SizedBox(height: 24),
+                    Text(
+                      _error ?? 'Ouverture de votre espace local…',
+                      textAlign: TextAlign.center,
+                    ),
+                    if (!_loading) ...[
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: _start,
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: services.settings),
+        ChangeNotifierProvider.value(value: services.availability),
+        ChangeNotifierProvider.value(value: services.conversations),
+        ChangeNotifierProvider.value(value: services.voice),
+      ],
+      child: const OpenUsApp(),
+    );
   }
 }
 
@@ -106,8 +177,11 @@ class OpenUsApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsController>().settings;
     return MaterialApp(
-      title: 'OPENUS — Your personal AI', debugShowCheckedModeBanner: false,
-      theme: OpenUsTheme.build(settings), darkTheme: OpenUsTheme.build(settings), themeMode: ThemeMode.dark,
+      title: 'OPENUS — Your personal AI',
+      debugShowCheckedModeBanner: false,
+      theme: OpenUsTheme.build(settings),
+      darkTheme: OpenUsTheme.build(settings),
+      themeMode: ThemeMode.dark,
       home: const HomeShell(),
     );
   }

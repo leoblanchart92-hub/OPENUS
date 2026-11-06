@@ -19,16 +19,26 @@ class SettingsRepository {
     if (raw == null) return const SettingsLoadResult(AppSettings(), null);
     try {
       final value = jsonDecode(raw);
-      if (value is! Map<String, dynamic>) throw const FormatException('Settings envelope');
+      if (value is! Map<String, dynamic>)
+        throw const FormatException('Settings envelope');
       return SettingsLoadResult(AppSettings.fromJson(value), null);
     } on FormatException {
-      return const SettingsLoadResult(AppSettings(), 'Paramètres endommagés : valeurs par défaut chargées. Aucun moteur n’a été activé automatiquement.');
+      return const SettingsLoadResult(
+        AppSettings(),
+        'Paramètres endommagés : valeurs par défaut chargées. Aucun moteur n’a été activé automatiquement.',
+      );
     }
   }
 
   Future<void> save(AppSettings settings) async {
     // SharedPreferences is for preferences ONLY, never API credentials.
-    final saved = await _preferences.setString(_key, jsonEncode(settings.toJson()));
-    if (!saved) throw const StorageFailure('Les paramètres n’ont pas pu être enregistrés.');
+    final saved = await _preferences.setString(
+      _key,
+      jsonEncode(settings.toJson()),
+    );
+    if (!saved)
+      throw const StorageFailure(
+        'Les paramètres n’ont pas pu être enregistrés.',
+      );
   }
 }

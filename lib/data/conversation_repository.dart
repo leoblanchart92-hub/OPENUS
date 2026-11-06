@@ -21,7 +21,8 @@ class JsonConversationRepository implements ConversationRepository {
   final Directory directory;
   Future<void> _writes = Future.value();
 
-  File get _file => File('${directory.path}${Platform.pathSeparator}conversations.json');
+  File get _file =>
+      File('${directory.path}${Platform.pathSeparator}conversations.json');
 
   @override
   Future<List<Conversation>> load() async {
@@ -30,16 +31,26 @@ class JsonConversationRepository implements ConversationRepository {
       if (!await _file.exists()) return [];
       final raw = await _file.readAsString();
       final json = jsonDecode(raw);
-      if (json is! Map<String, dynamic> || json['schemaVersion'] != 1 || json['conversations'] is! List) {
+      if (json is! Map<String, dynamic> ||
+          json['schemaVersion'] != 1 ||
+          json['conversations'] is! List) {
         throw const FormatException('Unsupported archive');
       }
-      final result = (json['conversations'] as List).cast<Map<String, dynamic>>().map(Conversation.fromJson).toList();
-      if (result.map((c) => c.id).toSet().length != result.length) throw const FormatException('Duplicate IDs');
+      final result = (json['conversations'] as List)
+          .cast<Map<String, dynamic>>()
+          .map(Conversation.fromJson)
+          .toList();
+      if (result.map((c) => c.id).toSet().length != result.length)
+        throw const FormatException('Duplicate IDs');
       return result;
     } on FormatException {
-      throw const StorageFailure('Historique illisible. Le fichier existant n’a pas été écrasé ; sauvegardez-le avant de réessayer.');
+      throw const StorageFailure(
+        'Historique illisible. Le fichier existant n’a pas été écrasé ; sauvegardez-le avant de réessayer.',
+      );
     } on FileSystemException {
-      throw const StorageFailure('Impossible de lire l’historique sur cet appareil. Vérifiez l’espace disque et les permissions.');
+      throw const StorageFailure(
+        'Impossible de lire l’historique sur cet appareil. Vérifiez l’espace disque et les permissions.',
+      );
     }
   }
 
@@ -64,8 +75,14 @@ class JsonConversationRepository implements ConversationRepository {
       // Windows File.Replace semantics are covered by the Windows CI smoke test.
       await temp.rename(_file.path);
     } on FileSystemException {
-      try { if (await temp.exists()) await temp.delete(); } on FileSystemException { /* best effort */ }
-      throw const StorageFailure('Sauvegarde impossible. Vos messages restent en mémoire, mais peuvent être perdus à la fermeture.');
+      try {
+        if (await temp.exists()) await temp.delete();
+      } on FileSystemException {
+        /* best effort */
+      }
+      throw const StorageFailure(
+        'Sauvegarde impossible. Vos messages restent en mémoire, mais peuvent être perdus à la fermeture.',
+      );
     }
   }
 }
