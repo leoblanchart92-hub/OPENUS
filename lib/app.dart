@@ -86,7 +86,12 @@ class _OpenUsBootstrapState extends State<OpenUsBootstrap> {
       );
       final voice = VoiceController()..configure(settings.settings);
       services = _Services(settings, availability, conversations, voice);
-      services.voiceSync = () => voice.configure(settings.settings);
+      services.voiceSync = () {
+        voice.configure(settings.settings);
+        // A saved preference or key change must never leave a stale green badge.
+        // Availability is unknown again until a real probe/response succeeds.
+        availability.invalidate();
+      };
       settings.addListener(services.voiceSync!);
       await Future.wait([settings.initialize(), conversations.initialize()]);
       if (!mounted) {

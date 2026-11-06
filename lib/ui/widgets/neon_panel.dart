@@ -42,7 +42,9 @@ class NeonPanel extends StatelessWidget {
               ]
             : null,
       ),
-      child: child,
+      // ListTile/InkWell need a Material inside the decorated container so
+      // their ink splashes are not painted behind the panel background.
+      child: Material(type: MaterialType.transparency, child: child),
     );
   }
 }

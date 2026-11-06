@@ -25,8 +25,15 @@ class JsonConversationRepository implements ConversationRepository {
       File('${directory.path}${Platform.pathSeparator}conversations.json');
 
   @override
-  Future<List<Conversation>> load() async {
-    await _writes;
+  Future<List<Conversation>> load() {
+    // Reads join the same queue as writes: a load cannot observe a half-write
+    // or overtake an earlier save requested by the controller.
+    final operation = _writes.then((_) => _load());
+    _writes = operation.then<void>((_) {}, onError: (Object _) {});
+    return operation;
+  }
+
+  Future<List<Conversation>> _load() async {
     try {
       if (!await _file.exists()) return [];
       final raw = await _file.readAsString();

@@ -5,6 +5,8 @@ import 'package:http/testing.dart';
 import 'package:openus/core/network/http_json_client.dart';
 import 'package:openus/core/theme/openus_theme.dart';
 import 'package:openus/domain/app_settings.dart';
+import 'package:openus/domain/conversation.dart';
+import 'package:openus/ui/widgets/message_bubble.dart';
 import 'package:openus/services/ai/engine_router.dart';
 import 'package:openus/services/voice/voice_controller.dart';
 import 'package:openus/state/availability_controller.dart';
@@ -17,7 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'fakes.dart';
 
 void main() {
-  Future<void> pumpApp(WidgetTester tester, Size size) async {
+  Future<ConversationController> pumpApp(WidgetTester tester, Size size) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -65,6 +67,7 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+    return chats;
   }
 
   testWidgets(
@@ -100,14 +103,18 @@ void main() {
   testWidgets(
     'sending without an engine yields an explicit error, not a simulated reply',
     (tester) async {
-      await pumpApp(tester, const Size(1280, 900));
+      final chats = await pumpApp(tester, const Size(1280, 900));
       await tester.enterText(find.byType(TextField), 'Bonjour OPENUS');
       await tester.tap(find.byTooltip('Envoyer le message'));
       await tester.pump();
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('Bonjour OPENUS'), findsOneWidget);
-      expect(find.textContaining('Aucun moteur disponible.'), findsOneWidget);
+      expect(chats.active!.messages.last.status, MessageStatus.failed);
+      expect(chats.active!.messages.last.content, contains('Aucun moteur'));
+      final bubbles = tester.widgetList<MessageBubble>(find.byType(MessageBubble)).toList();
+      expect(bubbles, hasLength(2));
+      expect(bubbles.last.message.content, contains('Aucun moteur'));
       expect(tester.takeException(), isNull);
     },
   );
