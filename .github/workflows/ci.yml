@@ -56,16 +56,11 @@ jobs:
       - name: Publish readable verification results
         if: always()
         run: |
-          for file in analyze.log test.log; do
-            if [ -f "$file" ]; then
-              echo "## $file" >> "$GITHUB_STEP_SUMMARY"
-              echo '```text' >> "$GITHUB_STEP_SUMMARY"
-              tail -c 45000 "$file" >> "$GITHUB_STEP_SUMMARY"
-              echo '```' >> "$GITHUB_STEP_SUMMARY"
-              cat "$file"
-            fi
-          done
-          if [ '${{ steps.analyze.outcome }}' != success ] || [ '${{ steps.test.outcome }}' != success ]; then exit 1; fi
+          if [ '${{ steps.analyze.outcome }}' != success ] || [ '${{ steps.test.outcome }}' != success ]; then
+            python3 .github/scripts/report_log.py analyze.log test.log --annotate
+            exit 1
+          fi
+          python3 .github/scripts/report_log.py analyze.log test.log
 
   android:
     name: Android debug APK
@@ -90,14 +85,11 @@ jobs:
       - name: Publish build result
         if: always()
         run: |
-          if [ -f android-build.log ]; then
-            echo '## Android build' >> "$GITHUB_STEP_SUMMARY"
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            tail -c 50000 android-build.log >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            tail -150 android-build.log
+          if [ '${{ steps.build.outcome }}' != success ]; then
+            python3 .github/scripts/report_log.py android-build.log --annotate
+            exit 1
           fi
-          if [ '${{ steps.build.outcome }}' != success ]; then exit 1; fi
+          python3 .github/scripts/report_log.py android-build.log
       - uses: actions/upload-artifact@v4
         with:
           name: OPENUS-android-debug
@@ -128,14 +120,11 @@ jobs:
         if: always()
         shell: bash
         run: |
-          if [ -f windows-build.log ]; then
-            echo '## Windows build' >> "$GITHUB_STEP_SUMMARY"
-            echo '```text' >> "$GITHUB_STEP_SUMMARY"
-            tail -c 50000 windows-build.log >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            tail -150 windows-build.log
+          if [ '${{ steps.build.outcome }}' != success ]; then
+            python3 .github/scripts/report_log.py windows-build.log --annotate
+            exit 1
           fi
-          if [ '${{ steps.build.outcome }}' != success ]; then exit 1; fi
+          python3 .github/scripts/report_log.py windows-build.log
       - uses: actions/upload-artifact@v4
         with:
           name: OPENUS-windows-release
