@@ -4,13 +4,12 @@ import '../../domain/ai.dart';
 /// Shared transport for providers that actually implement the OpenAI chat
 /// schema. Provider identity, host and credentials remain separate.
 class OpenAiCompatibleEngine implements AiEngine {
-  const OpenAiCompatibleEngine({
+  const OpenAiCompatibleEngine(
+    this._base,
+    this._http, {
     required this.kind,
     required this.displayName,
-    required Uri base,
-    required HttpJsonClient http,
-  }) : _base = base,
-       _http = http;
+  });
 
   @override
   final EngineKind kind;

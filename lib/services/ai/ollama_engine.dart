@@ -7,10 +7,9 @@ import '../../domain/local_model_profile.dart';
 class OllamaEngine implements AiEngine {
   OllamaEngine({
     required String baseUrl,
-    required HttpJsonClient http,
+    required this._http,
     this.lowMemoryMode = false,
-  }) : _base = baseUrl.trim().replaceAll(RegExp(r'/+$'), ''),
-       _http = http;
+  }) : _base = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
   final String _base;
   final HttpJsonClient _http;
   final bool lowMemoryMode;
@@ -32,7 +31,8 @@ class OllamaEngine implements AiEngine {
     if (entries is List) {
       for (final entry in entries) {
         if (entry is! Map<String, dynamic>) continue;
-        final name = (entry['name'] ?? entry['model']) as String?;
+        final rawName = entry['name'] ?? entry['model'];
+        final name = rawName is String ? rawName : null;
         final size = entry['size'];
         if (name != null && size is int && size >= 0) sizes[name] = size;
       }
@@ -47,13 +47,14 @@ class OllamaEngine implements AiEngine {
     );
   }
 
-  @override
-  Map<String, Object> _options(AiRequest request) => {
-    'num_predict': request.limits.maxOutputTokens,
-    if (request.limits.contextTokens != null)
-      'num_ctx': request.limits.contextTokens,
-    if (lowMemoryMode) 'num_batch': LocalModelProfile.batchTokens,
-  };
+  Map<String, Object> _options(AiRequest request) {
+    final context = request.limits.contextTokens;
+    return {
+      'num_predict': request.limits.maxOutputTokens,
+      if (context != null) 'num_ctx': context,
+      if (lowMemoryMode) 'num_batch': LocalModelProfile.batchTokens,
+    };
+  }
 
   @override
   Future<AiReply> complete(AiRequest request) async {

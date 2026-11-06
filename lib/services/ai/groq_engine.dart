@@ -7,9 +7,9 @@ import 'openai_compatible_engine.dart';
 class GroqEngine extends OpenAiCompatibleEngine {
   GroqEngine(HttpJsonClient http)
     : super(
+        Uri.https('api.groq.com', '/openai/v1/'),
+        http,
         kind: EngineKind.groq,
         displayName: 'Groq',
-        base: Uri.https('api.groq.com', '/openai/v1/'),
-        http: http,
       );
 }

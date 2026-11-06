@@ -6,9 +6,9 @@ import 'openai_compatible_engine.dart';
 class OpenAiEngine extends OpenAiCompatibleEngine {
   OpenAiEngine(HttpJsonClient http)
     : super(
+        Uri.https('api.openai.com', '/v1/'),
+        http,
         kind: EngineKind.openAi,
         displayName: 'OpenAI',
-        base: Uri.https('api.openai.com', '/v1/'),
-        http: http,
       );
 }

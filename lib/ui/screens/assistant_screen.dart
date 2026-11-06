@@ -408,7 +408,7 @@ class _Welcome extends StatelessWidget {
                       number: '01',
                       title: 'Choisissez votre intelligence',
                       description:
-                          'Ollama sur votre machine, OpenAI ou Anthropic.',
+                          'Ollama sur votre machine, OpenAI, Anthropic ou Groq.',
                     ),
                     const _SetupLine(
                       number: '02',

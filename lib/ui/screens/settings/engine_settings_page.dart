@@ -369,7 +369,7 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                         ),
                         subtitle: const Text(
                           'Contexte 2048, batch 128, réponse 512 tokens ; déchargement après réponse. '
-                          'Connues au-delà de 2 Gio, les poids sont refusés. Ce garde-fou ne mesure pas la RAM.',
+                          'Les poids connus de plus de 2 Gio sont refusés. Ce garde-fou ne mesure pas la RAM.',
                           style: TextStyle(fontSize: 11, height: 1.5),
                         ),
                       ),
@@ -443,6 +443,7 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                         obscureText: !_showKey,
                         autocorrect: false,
                         enableSuggestions: false,
+                        enableIMEPersonalizedLearning: false,
                         maxLength: 512,
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
