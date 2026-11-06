@@ -105,7 +105,12 @@ class AvailabilityController extends ChangeNotifier {
         tasks.add(
           check(
             EngineKind.local,
-            () => _router.localEngine(settings.localEndpoint).probe(),
+            () => _router
+                .localEngine(
+                  settings.localEndpoint,
+                  lowMemoryMode: settings.localLowMemoryMode,
+                )
+                .probe(),
           ),
         );
       } else {
@@ -116,13 +121,9 @@ class AvailabilityController extends ChangeNotifier {
       }
     }
     for (final provider in CloudProvider.values) {
-      final kind = provider == CloudProvider.openAi
-          ? EngineKind.openAi
-          : EngineKind.anthropic;
+      final kind = provider.engineKind;
       if (only != null && only != kind) continue;
-      final model = provider == CloudProvider.openAi
-          ? settings.openAiModel
-          : settings.anthropicModel;
+      final model = settings.modelFor(provider);
       try {
         final key = await _credentials.read(provider);
         if (!current()) return;

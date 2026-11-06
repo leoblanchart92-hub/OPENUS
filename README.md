@@ -2,7 +2,7 @@
 
 **YOUR PERSONAL AI**
 
-Assistant personnel modulaire en **Flutter / Dart**, conçu pour **Android** et **Windows 10/11**. Cette première phase crée une véritable base applicative : interface responsive, conversations persistantes, paramètres, stockage sécurisé des clés et connecteurs IA réels optionnels.
+Assistant personnel modulaire en **Flutter / Dart**, conçu pour **Android** et **Windows 10/11**. Cette base applicative comprend : interface responsive, conversations persistantes, paramètres, stockage sécurisé des clés et connecteurs IA réels optionnels.
 
 > OPENUS ne contient ni modèle IA embarqué, ni clé API préinstallée, ni réponse simulée. Sans moteur configuré, l’application affiche explicitement cet état et conserve l’erreur de la requête.
 
@@ -58,6 +58,8 @@ Le résultat est un **dossier autonome contenant OPENUS.exe et ses DLL/ressource
 - **Ollama** : `/api/tags` et `/api/chat`, découverte des modèles installés, annulation de requête.
 - **OpenAI** : `/v1/models` et `/v1/chat/completions`.
 - **Anthropic** : `/v1/models` et `/v1/messages`, avec son schéma d’API distinct.
+- **Groq** : `/openai/v1/models` et `/openai/v1/chat/completions`, clé personnelle isolée dans le stockage sécurisé.
+- **Profil local léger** : `qwen3:0.6b-q4_K_M` via Ollama, contexte 2048, batch 128, réponse 512 tokens et déchargement après réponse. Poids publiés ≈ 523 Mo ; cible < 4 Gio pour le moteur, à mesurer, pas une garantie de RAM totale appareil.
 - Paramètres persistants ; clés séparées par fournisseur dans le stockage sécurisé natif.
 - Dictée à la demande et synthèse vocale natives, sous réserve des services et permissions de l’appareil. La reconnaissance Windows est expérimentale.
 - Accent, halos, réduction des animations, langue et vitesse vocales, instructions générales et taille du contexte.
@@ -71,12 +73,16 @@ Ouvrez **Paramètres → Moteurs IA**.
 
 ### Ollama
 
-1. Installez et lancez Ollama sur votre machine, puis installez un modèle avec les commandes officielles d’Ollama. OPENUS n’installe aucun logiciel.
+1. Installez et lancez Ollama sur votre machine, puis installez un modèle avec les commandes officielles d’Ollama. OPENUS n’installe aucun logiciel. Le profil léger proposé est `ollama pull qwen3:0.6b-q4_K_M`.
 2. Renseignez l’origine du serveur, sans `/api` à la fin.
 3. Cliquez sur **Vérifier et lister les modèles**, puis choisissez un modèle installé.
 4. Enregistrez la configuration et choisissez le mode Local ou Auto.
 
 `127.0.0.1` sur Android désigne le téléphone. Pour joindre le PC : adresse LAN du PC, `10.0.2.2` depuis l’émulateur Android, ou `adb reverse tcp:11434 tcp:11434` sur un appareil USB débogué. Un serveur local doit écouter sur une interface accessible ; ne l’exposez pas publiquement sans authentification et TLS.
+
+### Groq
+
+Voir [docs/GROQ_AND_LOCAL.md](docs/GROQ_AND_LOCAL.md). Créez votre clé sur `console.groq.com/keys`, collez-la uniquement dans le champ sécurisé de l’application, puis enregistrez. Ne la partagez pas dans le chat ou GitHub. Le modèle suggéré est `llama-3.1-8b-instant`, sous réserve d’accès de votre compte.
 
 ### OpenAI ou Anthropic
 
@@ -106,7 +112,7 @@ lib/
   domain/     modèles et contrats indépendants de l’interface
   data/       historique, paramètres, stockage sécurisé
   services/
-    ai/       Ollama, OpenAI, Anthropic, routage
+    ai/       Ollama, OpenAI, Anthropic, Groq, base OpenAI-compatible, routage
     memory/   construction du contexte conversationnel
     voice/    dictée et synthèse natives
   state/      contrôleurs ChangeNotifier

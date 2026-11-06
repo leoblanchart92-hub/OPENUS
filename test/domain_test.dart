@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openus/domain/ai.dart';
 import 'package:openus/domain/app_settings.dart';
 import 'package:openus/domain/conversation.dart';
+import 'package:openus/domain/local_model_profile.dart';
 import 'package:openus/services/memory/conversation_context.dart';
 
 void main() {
@@ -24,6 +25,31 @@ void main() {
             k.toLowerCase().contains('key') ||
             k.toLowerCase().contains('secret'),
       ),
+      isFalse,
+    );
+  });
+  test('Groq and light local preferences migrate without secrets', () {
+    final old = AppSettings.fromJson({
+      'provider': 'openAi',
+      'openAiModel': 'existing-model',
+      'localModel': 'existing-local',
+    });
+    expect(old.groqModel, isEmpty);
+    expect(old.localLowMemoryMode, isFalse);
+    expect(old.openAiModel, 'existing-model');
+    final preset = old.withLightLocalPreset();
+    expect(preset.localModel, LocalModelProfile.recommendedModel);
+    expect(preset.localLowMemoryMode, isTrue);
+    expect(preset.contextMessages, 8);
+    expect(preset.provider, CloudProvider.openAi);
+    final restored = AppSettings.fromJson(
+      preset.copyWith(provider: CloudProvider.groq, groqModel: 'groq-model').toJson(),
+    );
+    expect(restored.provider, CloudProvider.groq);
+    expect(restored.groqModel, 'groq-model');
+    expect(restored.localLowMemoryMode, isTrue);
+    expect(
+      AppSettings.fromJson({'localLowMemoryMode': 'corrupt'}).localLowMemoryMode,
       isFalse,
     );
   });

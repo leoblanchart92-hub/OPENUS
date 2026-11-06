@@ -1,18 +1,26 @@
 import '../../data/credential_store.dart';
 import '../../domain/ai.dart';
 import '../../domain/app_settings.dart';
+import '../../domain/local_model_profile.dart';
 import '../../domain/conversation.dart';
 import '../../core/network/http_json_client.dart';
 import '../memory/conversation_context.dart';
 import 'anthropic_engine.dart';
+import 'groq_engine.dart';
 import 'ollama_engine.dart';
 import 'openai_engine.dart';
 
 class EngineSelection {
-  const EngineSelection(this.engine, this.model, this._apiKey);
+  const EngineSelection(
+    this.engine,
+    this.model,
+    this._apiKey, {
+    this.limits = const GenerationLimits(),
+  });
   final AiEngine engine;
   final String model;
   final String? _apiKey;
+  final GenerationLimits limits;
   AiRequest request(
     List<ChatMessage> messages,
     String prompt,
@@ -22,6 +30,7 @@ class EngineSelection {
     messages: messages,
     systemPrompt: prompt,
     apiKey: _apiKey,
+    limits: limits,
     cancelToken: token,
   );
   @override
@@ -38,12 +47,13 @@ class EngineRouter {
   final HttpJsonClient http;
   final void Function(EngineKind, EngineProbe)? onProbe;
 
-  OllamaEngine localEngine(String endpoint) =>
-      OllamaEngine(baseUrl: endpoint, http: http);
+  OllamaEngine localEngine(String endpoint, {bool lowMemoryMode = false}) =>
+      OllamaEngine(baseUrl: endpoint, http: http, lowMemoryMode: lowMemoryMode);
 
   AiEngine cloudEngine(CloudProvider provider) => switch (provider) {
     CloudProvider.openAi => OpenAiEngine(http),
     CloudProvider.anthropic => AnthropicEngine(http),
+    CloudProvider.groq => GroqEngine(http),
   };
 
   /// Configuration is not availability. Local availability needs a real probe;
@@ -55,15 +65,39 @@ class EngineRouter {
         final engine = OllamaEngine(
           baseUrl: settings.localEndpoint,
           http: http,
+          lowMemoryMode: settings.localLowMemoryMode,
         );
         try {
           final probe = await engine.probe();
           onProbe?.call(EngineKind.local, probe);
-          if (probe.models.contains(settings.localModel.trim())) {
-            return EngineSelection(engine, settings.localModel.trim(), null);
+          final model = settings.localModel.trim();
+          if (probe.models.contains(model)) {
+            final size = probe.modelSizesBytes[model];
+            if (settings.localLowMemoryMode &&
+                size != null &&
+                size > LocalModelProfile.maxArtifactBytes) {
+              final gib = (size / (1024 * 1024 * 1024)).toStringAsFixed(1);
+              localIssue =
+                  'Le profil léger refuse ce modèle de $gib Gio sur disque : '
+                  'la marge sous la cible de 4 Gio pour le moteur est insuffisante. '
+                  'Choisissez ${LocalModelProfile.recommendedModel} ou désactivez le profil léger.';
+            } else {
+              return EngineSelection(
+                engine,
+                model,
+                null,
+                limits: settings.localLowMemoryMode
+                    ? const GenerationLimits(
+                        maxOutputTokens: LocalModelProfile.outputTokens,
+                        contextTokens: LocalModelProfile.contextTokens,
+                      )
+                    : const GenerationLimits(),
+              );
+            }
+          } else {
+            localIssue =
+                'Le modèle local « ${settings.localModel} » n’est pas installé dans Ollama.';
           }
-          localIssue =
-              'Le modèle local « ${settings.localModel} » n’est pas installé dans Ollama.';
         } on AiException catch (error) {
           localIssue = error.message;
           onProbe?.call(

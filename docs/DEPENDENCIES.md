@@ -26,6 +26,9 @@ Vérification documentaire effectuée le 2026-11-06. Les contraintes sont dans `
 - Ollama API : https://github.com/ollama/ollama/blob/main/docs/api.md
 - OpenAI Chat Completions : https://platform.openai.com/docs/api-reference/chat
 - Anthropic Messages : https://docs.anthropic.com/en/api/messages
+- Groq API : https://console.groq.com/docs/api-reference et https://console.groq.com/docs/quickstart
+- Ollama chat/FAQ : https://docs.ollama.com/api/chat et https://docs.ollama.com/faq
+- Modèle local : https://ollama.com/library/qwen3:0.6b-q4_K_M
 
 ## Points d’attention
 
@@ -39,3 +42,5 @@ Vérification documentaire effectuée le 2026-11-06. Les contraintes sont dans `
 ## Versions natives de référence
 
 Les fichiers Android proviennent du template Flutter 3.44.9 : Gradle 9.1.0, AGP 9.0.1, Kotlin 2.3.20, Java 17, compile/target SDK 36 et min SDK 24 via les valeurs Flutter. Le wrapper Gradle officiel est versionné. Le runner Windows utilise CMake et C++17 ; la CI vérifie la compilation sur windows-latest.
+
+- Extension Groq/local : aucune nouvelle dépendance Dart/natie. `http` et `flutter_secure_storage` existants suffisent. Ollama et les poids sont des prérequis externes, non embarqués.

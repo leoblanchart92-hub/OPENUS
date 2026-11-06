@@ -77,7 +77,12 @@ class AboutSettingsPage extends StatelessWidget {
                     done: true,
                   ),
                   _Capability(
-                    label: 'Connecteurs Ollama, OpenAI, Anthropic',
+                    label: 'Connecteurs Ollama, OpenAI, Anthropic, Groq',
+                    status: 'CONFIGURABLE',
+                    done: true,
+                  ),
+                  _Capability(
+                    label: 'Profil local léger Qwen3 0,6B (Ollama)',
                     status: 'CONFIGURABLE',
                     done: true,
                   ),

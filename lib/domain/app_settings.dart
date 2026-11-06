@@ -1,4 +1,5 @@
 import 'ai.dart';
+import 'local_model_profile.dart';
 
 enum AccentChoice { violet, blue }
 
@@ -7,9 +8,11 @@ class AppSettings {
     this.mode = AiMode.automatic,
     this.localEndpoint = 'http://127.0.0.1:11434',
     this.localModel = '',
+    this.localLowMemoryMode = false,
     this.provider = CloudProvider.openAi,
     this.openAiModel = '',
     this.anthropicModel = '',
+    this.groqModel = '',
     this.contextMessages = 20,
     this.systemPrompt =
         'Tu es OPENUS, un assistant personnel francophone. Réponds avec précision et simplicité. '
@@ -25,9 +28,11 @@ class AppSettings {
   final AiMode mode;
   final String localEndpoint;
   final String localModel;
+  final bool localLowMemoryMode;
   final CloudProvider provider;
   final String openAiModel;
   final String anthropicModel;
+  final String groqModel;
   final int contextMessages;
   final String systemPrompt;
   final bool autoSpeak;
@@ -37,8 +42,13 @@ class AppSettings {
   final bool glowEnabled;
   final bool reduceMotion;
 
-  String get cloudModel =>
-      provider == CloudProvider.openAi ? openAiModel : anthropicModel;
+  String modelFor(CloudProvider value) => switch (value) {
+    CloudProvider.openAi => openAiModel,
+    CloudProvider.anthropic => anthropicModel,
+    CloudProvider.groq => groqModel,
+  };
+
+  String get cloudModel => modelFor(provider);
   bool get localConfigured =>
       localModel.trim().isNotEmpty && endpointError == null;
   bool get cloudConfigured => cloudModel.trim().isNotEmpty;
@@ -91,13 +101,22 @@ class AppSettings {
     }
   }
 
+  /// Selects a real external Ollama model; never downloads or installs it.
+  AppSettings withLightLocalPreset() => copyWith(
+    localModel: LocalModelProfile.recommendedModel,
+    localLowMemoryMode: true,
+    contextMessages: LocalModelProfile.conversationMessages,
+  );
+
   AppSettings copyWith({
     AiMode? mode,
     String? localEndpoint,
     String? localModel,
+    bool? localLowMemoryMode,
     CloudProvider? provider,
     String? openAiModel,
     String? anthropicModel,
+    String? groqModel,
     int? contextMessages,
     String? systemPrompt,
     bool? autoSpeak,
@@ -110,9 +129,11 @@ class AppSettings {
     mode: mode ?? this.mode,
     localEndpoint: localEndpoint ?? this.localEndpoint,
     localModel: localModel ?? this.localModel,
+    localLowMemoryMode: localLowMemoryMode ?? this.localLowMemoryMode,
     provider: provider ?? this.provider,
     openAiModel: openAiModel ?? this.openAiModel,
     anthropicModel: anthropicModel ?? this.anthropicModel,
+    groqModel: groqModel ?? this.groqModel,
     contextMessages: contextMessages ?? this.contextMessages,
     systemPrompt: systemPrompt ?? this.systemPrompt,
     autoSpeak: autoSpeak ?? this.autoSpeak,
@@ -127,9 +148,11 @@ class AppSettings {
     'mode': mode.name,
     'localEndpoint': localEndpoint,
     'localModel': localModel,
+    'localLowMemoryMode': localLowMemoryMode,
     'provider': provider.name,
     'openAiModel': openAiModel,
     'anthropicModel': anthropicModel,
+    'groqModel': groqModel,
     'contextMessages': contextMessages,
     'systemPrompt': systemPrompt,
     'autoSpeak': autoSpeak,
@@ -157,9 +180,11 @@ class AppSettings {
       mode: enumValue('mode', AiMode.values, defaults.mode),
       localEndpoint: text('localEndpoint', defaults.localEndpoint, 2048),
       localModel: text('localModel', '', 200),
+      localLowMemoryMode: json['localLowMemoryMode'] == true,
       provider: enumValue('provider', CloudProvider.values, defaults.provider),
       openAiModel: text('openAiModel', '', 200),
       anthropicModel: text('anthropicModel', '', 200),
+      groqModel: text('groqModel', '', 200),
       contextMessages:
           (json['contextMessages'] as num?)?.clamp(4, 40).toInt() ?? 20,
       systemPrompt: text('systemPrompt', defaults.systemPrompt, 4000),

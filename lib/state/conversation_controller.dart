@@ -119,7 +119,7 @@ class ConversationController extends ChangeNotifier {
           engineLabel: '${reply.engineLabel} · ${reply.model}',
         ),
       );
-      onEngineSuccess?.call(_kind(reply.engineLabel));
+      onEngineSuccess?.call(reply.kind);
       unawaited(_persist());
       return reply.content;
     } catch (error) {
@@ -152,12 +152,6 @@ class ConversationController extends ChangeNotifier {
       _notify();
     }
   }
-
-  EngineKind _kind(String label) => label == 'Ollama'
-      ? EngineKind.local
-      : label == 'OpenAI'
-      ? EngineKind.openAi
-      : EngineKind.anthropic;
 
   void cancelGeneration() => _cancelToken?.cancel();
 

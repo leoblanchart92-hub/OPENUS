@@ -2,9 +2,29 @@ import 'conversation.dart';
 
 enum AiMode { local, internet, automatic }
 
-enum CloudProvider { openAi, anthropic }
+enum CloudProvider { openAi, anthropic, groq }
 
-enum EngineKind { local, openAi, anthropic }
+enum EngineKind { local, openAi, anthropic, groq }
+
+extension CloudProviderInfo on CloudProvider {
+  String get displayName => switch (this) {
+    CloudProvider.openAi => 'OpenAI',
+    CloudProvider.anthropic => 'Anthropic',
+    CloudProvider.groq => 'Groq',
+  };
+
+  EngineKind get engineKind => switch (this) {
+    CloudProvider.openAi => EngineKind.openAi,
+    CloudProvider.anthropic => EngineKind.anthropic,
+    CloudProvider.groq => EngineKind.groq,
+  };
+
+  /// A documented suggestion, not a claim about the user's account entitlement.
+  String? get suggestedModel => switch (this) {
+    CloudProvider.groq => 'llama-3.1-8b-instant',
+    _ => null,
+  };
+}
 
 class AiException implements Exception {
   const AiException(this.message, {this.cancelled = false});
@@ -27,10 +47,18 @@ class EngineProbe {
     required this.available,
     required this.message,
     this.models = const [],
+    this.modelSizesBytes = const {},
   });
   final bool available;
   final String message;
   final List<String> models;
+  final Map<String, int> modelSizesBytes;
+}
+
+class GenerationLimits {
+  const GenerationLimits({this.maxOutputTokens = 2048, this.contextTokens});
+  final int maxOutputTokens;
+  final int? contextTokens;
 }
 
 class AiRequest {
@@ -40,22 +68,26 @@ class AiRequest {
     required this.systemPrompt,
     required this.cancelToken,
     this.apiKey,
+    this.limits = const GenerationLimits(),
     this.timeout = const Duration(seconds: 120),
   });
   final String model;
   final List<ChatMessage> messages;
   final String systemPrompt;
   final String? apiKey;
+  final GenerationLimits limits;
   final AiCancelToken cancelToken;
   final Duration timeout;
 }
 
 class AiReply {
   const AiReply({
+    required this.kind,
     required this.content,
     required this.model,
     required this.engineLabel,
   });
+  final EngineKind kind;
   final String content;
   final String model;
   final String engineLabel;

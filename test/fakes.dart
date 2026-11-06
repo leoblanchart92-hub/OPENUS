@@ -57,6 +57,7 @@ class ScriptedEngine implements AiEngine {
     calls++;
     request.cancelToken.throwIfCancelled();
     return AiReply(
+      kind: kind,
       content: 'Engine result',
       model: request.model,
       engineLabel: displayName,

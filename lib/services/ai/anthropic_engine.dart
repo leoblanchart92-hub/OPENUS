@@ -46,7 +46,7 @@ class AnthropicEngine implements AiEngine {
         'messages': request.messages
             .map((m) => {'role': m.role.name, 'content': m.content})
             .toList(),
-        'max_tokens': 2048,
+        'max_tokens': request.limits.maxOutputTokens,
         'stream': false,
       },
       timeout: request.timeout,
@@ -66,6 +66,7 @@ class AnthropicEngine implements AiEngine {
       throw const AiException('Anthropic n’a renvoyé aucun texte exploitable.');
     }
     return AiReply(
+      kind: kind,
       content: content,
       model: json['model'] as String? ?? request.model,
       engineLabel: displayName,

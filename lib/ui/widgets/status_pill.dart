@@ -58,9 +58,7 @@ class EngineStatusPill extends StatelessWidget {
     final settings = context.watch<SettingsController>().settings;
     final availability = context.watch<AvailabilityController>();
     final local = availability[EngineKind.local];
-    final cloudKind = settings.provider == CloudProvider.openAi
-        ? EngineKind.openAi
-        : EngineKind.anthropic;
+    final cloudKind = settings.provider.engineKind;
     final cloud = availability[cloudKind];
     if (availability.busy) {
       return const StatusPill(label: 'Vérification…', color: OpenUsColors.blue);

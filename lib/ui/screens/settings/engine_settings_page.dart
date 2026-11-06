@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/openus_theme.dart';
 import '../../../domain/ai.dart';
 import '../../../domain/app_settings.dart';
+import '../../../domain/local_model_profile.dart';
 import '../../../state/availability_controller.dart';
 import '../../../state/settings_controller.dart';
 import '../../widgets/neon_panel.dart';
@@ -19,11 +21,13 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
       _localModel,
       _openAiModel,
       _anthropicModel,
+      _groqModel,
       _apiKey,
       _prompt;
   late AiMode _mode;
   late CloudProvider _provider;
   late int _contextMessages;
+  late bool _lowMemory;
   bool _showKey = false;
   @override
   void initState() {
@@ -32,10 +36,12 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
     _mode = s.mode;
     _provider = s.provider;
     _contextMessages = s.contextMessages;
+    _lowMemory = s.localLowMemoryMode;
     _endpoint = TextEditingController(text: s.localEndpoint);
     _localModel = TextEditingController(text: s.localModel);
     _openAiModel = TextEditingController(text: s.openAiModel);
     _anthropicModel = TextEditingController(text: s.anthropicModel);
+    _groqModel = TextEditingController(text: s.groqModel);
     _prompt = TextEditingController(text: s.systemPrompt);
     _apiKey = TextEditingController();
   }
@@ -47,6 +53,7 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
       _localModel,
       _openAiModel,
       _anthropicModel,
+      _groqModel,
       _apiKey,
       _prompt,
     ]) {
@@ -59,14 +66,47 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
     mode: _mode,
     localEndpoint: _endpoint.text.trim(),
     localModel: _localModel.text.trim(),
+    localLowMemoryMode: _lowMemory,
     provider: _provider,
     openAiModel: _openAiModel.text.trim(),
     anthropicModel: _anthropicModel.text.trim(),
+    groqModel: _groqModel.text.trim(),
     systemPrompt: _prompt.text.trim().isEmpty
         ? const AppSettings().systemPrompt
         : _prompt.text.trim(),
     contextMessages: _contextMessages,
   );
+
+  void _selectProvider(CloudProvider provider) {
+    setState(() {
+      _provider = provider;
+      _apiKey.clear();
+      _showKey = false;
+      final controller = switch (provider) {
+        CloudProvider.openAi => _openAiModel,
+        CloudProvider.anthropic => _anthropicModel,
+        CloudProvider.groq => _groqModel,
+      };
+      if (controller.text.trim().isEmpty) {
+        controller.text = provider.suggestedModel ?? '';
+      }
+    });
+  }
+
+  void _applyLightPreset() {
+    setState(() {
+      _localModel.text = LocalModelProfile.recommendedModel;
+      _lowMemory = true;
+      _contextMessages = LocalModelProfile.conversationMessages;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Profil léger sélectionné. Installez le modèle dans Ollama, puis enregistrez et vérifiez.',
+        ),
+      ),
+    );
+  }
 
   Future<bool> _save({bool quiet = false}) async {
     if (!(_form.currentState?.validate() ?? false)) return false;
@@ -129,12 +169,12 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
     final controller = context.watch<SettingsController>();
     final availability = context.watch<AvailabilityController>();
     final busy = controller.busy || availability.busy;
-    final cloudKind = _provider == CloudProvider.openAi
-        ? EngineKind.openAi
-        : EngineKind.anthropic;
-    final cloudModelController = _provider == CloudProvider.openAi
-        ? _openAiModel
-        : _anthropicModel;
+    final cloudKind = _provider.engineKind;
+    final cloudModelController = switch (_provider) {
+      CloudProvider.openAi => _openAiModel,
+      CloudProvider.anthropic => _anthropicModel,
+      CloudProvider.groq => _groqModel,
+    };
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         MediaQuery.sizeOf(context).width < 680 ? 20 : 36,
@@ -235,11 +275,97 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                       ),
                       const SizedBox(height: 14),
                       _ModelField(
+                        key: const ValueKey('local-model-field'),
                         controller: _localModel,
                         label: 'Modèle local installé',
                         models: availability[EngineKind.local].models,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: OpenUsColors.blue.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: OpenUsColors.blue.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Profil léger · ${LocalModelProfile.displayName}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Poids publié : ${LocalModelProfile.publishedArtifactLabel}. '
+                              'Cible : moins de 4 Gio pour Ollama avec ce profil, à mesurer sur votre appareil. '
+                              'Ce n’est pas une limite de RAM totale pour Windows ou Android.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: OpenUsColors.muted,
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const SelectableText(
+                              LocalModelProfile.pullCommand,
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  key: const ValueKey('local-light-preset'),
+                                  onPressed: busy ? null : _applyLightPreset,
+                                  icon: const Icon(Icons.speed_rounded, size: 17),
+                                  label: const Text('Choisir ce profil'),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () async {
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    await Clipboard.setData(
+                                      const ClipboardData(
+                                        text: LocalModelProfile.pullCommand,
+                                      ),
+                                    );
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Commande copiée.'),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.copy_rounded, size: 16),
+                                  label: const Text('Copier la commande'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        value: _lowMemory,
+                        onChanged: busy
+                            ? null
+                            : (value) => setState(() => _lowMemory = value),
+                        title: const Text(
+                          'Profil faible mémoire',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        subtitle: const Text(
+                          'Contexte 2048, batch 128, réponse 512 tokens ; déchargement après réponse. '
+                          'Connues au-delà de 2 Gio, les poids sont refusés. Ce garde-fou ne mesure pas la RAM.',
+                          style: TextStyle(fontSize: 11, height: 1.5),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         availability[EngineKind.local].message,
                         style: const TextStyle(
@@ -279,38 +405,32 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                         trailing: _HealthBadge(kind: cloudKind),
                       ),
                       const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: SegmentedButton<CloudProvider>(
-                          showSelectedIcon: false,
-                          segments: const [
-                            ButtonSegment(
-                              value: CloudProvider.openAi,
-                              label: Text('OpenAI'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final provider in CloudProvider.values)
+                            ChoiceChip(
+                              key: ValueKey('provider-${provider.name}'),
+                              label: Text(provider.displayName),
+                              selected: _provider == provider,
+                              showCheckmark: false,
+                              onSelected: busy
+                                  ? null
+                                  : (_) => _selectProvider(provider),
                             ),
-                            ButtonSegment(
-                              value: CloudProvider.anthropic,
-                              label: Text('Anthropic'),
-                            ),
-                          ],
-                          selected: {_provider},
-                          onSelectionChanged: busy
-                              ? null
-                              : (value) => setState(() {
-                                  _provider = value.first;
-                                  _apiKey.clear();
-                                  _showKey = false;
-                                }),
-                        ),
+                        ],
                       ),
                       const SizedBox(height: 18),
                       _ModelField(
+                        key: ValueKey('model-${_provider.name}'),
                         controller: cloudModelController,
                         label: 'Identifiant exact du modèle',
                         models: availability[cloudKind].models,
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
+                        key: const ValueKey('api-key-field'),
                         controller: _apiKey,
                         obscureText: !_showKey,
                         autocorrect: false,
@@ -318,8 +438,7 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                         maxLength: 512,
                         style: const TextStyle(fontSize: 13),
                         decoration: InputDecoration(
-                          labelText:
-                              'Clé API ${_provider == CloudProvider.openAi ? 'OpenAI' : 'Anthropic'}',
+                          labelText: 'Clé API ${_provider.displayName}',
                           hintText: controller.hasKey(_provider)
                               ? 'Clé enregistrée · saisir pour remplacer'
                               : 'Collez votre propre clé API',
@@ -347,6 +466,7 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                           ListenableBuilder(
                             listenable: _apiKey,
                             builder: (_, _) => OutlinedButton.icon(
+                              key: const ValueKey('save-api-key'),
                               onPressed: busy || _apiKey.text.trim().isEmpty
                                   ? null
                                   : _saveKey,
@@ -381,6 +501,22 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                             ),
                         ],
                       ),
+                      if (_provider == CloudProvider.groq) ...[
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Créez votre clé personnelle sur console.groq.com/keys, puis collez-la ici. '
+                          'Ne la partagez pas dans le chat ou GitHub. L’accès, les quotas et la facturation dépendent de votre compte Groq.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: OpenUsColors.muted,
+                            height: 1.6,
+                          ),
+                        ),
+                        const SelectableText(
+                          'https://console.groq.com/keys',
+                          style: TextStyle(fontSize: 11, color: OpenUsColors.blue),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       Text(
                         controller.hasKey(_provider)
@@ -487,7 +623,7 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                 const SizedBox(height: 24),
                 const NoticeBanner(
                   message:
-                      'llama.cpp / GGUF embarqué : intégration à développer. Aucun moteur local n’est fourni dans l’APK. Les commandes système, les outils et les actions autonomes ne sont pas implémentés.',
+                      'Ollama et les poids ne sont pas inclus dans OPENUS : installation séparée. llama.cpp / GGUF embarqué reste à développer. Les commandes système, les outils et les actions autonomes ne sont pas implémentés.',
                 ),
               ],
             ),
@@ -545,6 +681,7 @@ class _HealthBadge extends StatelessWidget {
 
 class _ModelField extends StatelessWidget {
   const _ModelField({
+    super.key,
     required this.controller,
     required this.label,
     required this.models,

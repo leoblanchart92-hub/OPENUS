@@ -20,8 +20,11 @@ flowchart TD
   ROUTER --> LOCAL[OllamaEngine]
   ROUTER --> OPENAI[OpenAiEngine]
   ROUTER --> ANTHROPIC[AnthropicEngine]
+  ROUTER --> GROQ[GroqEngine]
   LOCAL --> HTTP[HttpJsonClient]
-  OPENAI --> HTTP
+  OPENAI --> COMPAT[OpenAiCompatibleEngine]
+  GROQ --> COMPAT
+  COMPAT --> HTTP
   ANTHROPIC --> HTTP
   DATA --> PREFS[SharedPreferences]
   DATA --> SECURE[Native secure storage]
@@ -52,7 +55,8 @@ Une seule génération est autorisée à la fois. Changer de conversation ne dé
 - **Internet** : aucun appel Ollama ; fournisseur sélectionné uniquement.
 - **Auto** : Ollama disponible d’abord, sinon fournisseur configuré. Pas de nouveau fournisseur après une erreur de génération, afin d’éviter double facturation et transmission imprévue.
 - Une vérification cloud interroge la liste des modèles. Certaines clés peuvent avoir accès au chat mais pas à cette liste : un échec de vérification ne prouve pas toujours que le chat soit interdit. L’application n’affiche « vérifié » qu’après un succès réel.
-- Les modèles cloud ne sont pas présélectionnés avec des identifiants supposés disponibles pour le compte.
+- Groq possède son propre `EngineKind`, son propre emplacement de clé et le même transport OpenAI-compatible qu’OpenAI, avec un hôte distinct. Le modèle suggéré reste soumis à vérification du compte.
+- Le profil local léger `qwen3:0.6b-q4_K_M` envoie `num_ctx:2048`, `num_batch:128`, `num_predict:512`, `think:false` pour Qwen3 et `keep_alive:0`. Les poids connus > 2 Gio sont refusés dans ce profil. La taille disque n’est pas une mesure de RAM ; la cible < 4 Gio concerne le moteur, pas tout l’appareil.
 
 ## Stockage
 
