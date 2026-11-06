@@ -62,7 +62,10 @@ void main() {
     await tester.tap(groq);
     await tester.pump();
     final model = tester.widget<TextFormField>(
-      find.byKey(const ValueKey('model-groq')),
+      find.descendant(
+        of: find.byKey(const ValueKey('model-groq')),
+        matching: find.byType(TextFormField),
+      ),
     );
     expect(model.controller!.text, 'llama-3.1-8b-instant');
     await tester.enterText(
