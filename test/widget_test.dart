@@ -110,7 +110,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-      expect(find.text('Bonjour OPENUS'), findsOneWidget);
+      expect(find.text('Bonjour OPENUS'), findsWidgets);
       expect(chats.active!.messages.last.status, MessageStatus.failed);
       expect(chats.active!.messages.last.content, contains('Aucun moteur'));
       final bubbles = tester

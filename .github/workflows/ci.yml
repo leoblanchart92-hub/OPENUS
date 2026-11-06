@@ -115,13 +115,21 @@ jobs:
         run: flutter build windows --release --no-pub > windows-build.log 2>&1
       - name: Publish build result
         if: always()
-        shell: bash
+        shell: pwsh
         run: |
-          if [ '${{ steps.build.outcome }}' != success ]; then
-            python .github/scripts/report_log.py windows-build.log --annotate
+          if ('${{ steps.build.outcome }}' -ne 'success') {
+            if (Test-Path windows-build.log) {
+              $tail = (Get-Content windows-build.log -Tail 80) -join "`n"
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Windows build failure`n$tail" -Encoding utf8
+              Write-Host $tail
+              $short = $tail
+              if ($short.Length -gt 700) { $short = $short.Substring($short.Length - 700) }
+              $escaped = ($short -replace '%', '%25') -replace "`r", '%0D' -replace "`n", '%0A'
+              Write-Host "::error title=Windows build failure::$escaped"
+            }
             exit 1
-          fi
-          python .github/scripts/report_log.py windows-build.log
+          }
+          if (Test-Path windows-build.log) { Get-Content windows-build.log -Tail 20 }
       - uses: actions/upload-artifact@v4
         with:
           name: OPENUS-windows-release
