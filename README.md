@@ -93,6 +93,10 @@ Voir [docs/GROQ_AND_LOCAL.md](docs/GROQ_AND_LOCAL.md). Créez votre clé sur `co
 
 Les frais, quotas et politiques de traitement des données du fournisseur s’appliquent. Le mode Auto peut envoyer vos messages au fournisseur choisi si le moteur local n’est pas disponible.
 
+## Vérifications
+
+La CI de l’extension Groq/local est verte : formatage, analyse, 32 tests, APK Android debug et bundle Windows release. Voir [docs/VERIFICATION.md](docs/VERIFICATION.md). Aucun compte Groq réel, serveur Ollama installé ou mesure RAM matérielle n’a été testé dans le sandbox.
+
 ## Confidentialité et sécurité
 
 - Aucune télémétrie OPENUS, aucun compte OPENUS, aucune synchronisation cloud des conversations.

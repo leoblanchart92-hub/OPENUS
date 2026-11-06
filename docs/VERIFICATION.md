@@ -1,4 +1,35 @@
-# Vérifications réelles — OPENUS phase 1
+# Vérifications réelles — OPENUS
+
+## Extension Groq + profil local léger
+
+Date : **2026-11-06**
+Branche : `arena/57c93823-openus`
+Version : **0.2.0+2**
+Commit de code vérifié : `39bb3dca60fc67f7f77783ad74efdcc67ac6ee5b`
+Exécution GitHub Actions : **success**
+https://github.com/leoblanchart92-hub/OPENUS/actions/runs/42187728454
+
+| contrôle | résultat |
+|---|---|
+| Formatage Dart | réussi |
+| `flutter analyze --no-pub` | réussi |
+| `flutter test --no-pub --reporter expanded` | réussi ; suite de **32 tests** unitaires/widgets |
+| Stockage Windows | réussi sur `windows-latest` |
+| APK Android debug | réussi ; `OPENUS-android-debug`, **79 209 424 octets** |
+| Bundle Windows release | réussi ; `OPENUS-windows-release`, **13 224 543 octets** |
+
+Jobs :
+- Analyze & test : https://github.com/leoblanchart92-hub/OPENUS/actions/runs/42187728454/job/127792143418
+- Windows : https://github.com/leoblanchart92-hub/OPENUS/actions/runs/42187728454/job/127792143834
+- Android : https://github.com/leoblanchart92-hub/OPENUS/actions/runs/42187728454/job/127792143875
+
+Couverture ajoutée : schéma/host Groq, clé Bearer et erreurs sans fuite, isolation Groq/OpenAI/Anthropic, mode Internet sans appel Ollama, mode Local sans repli Groq, options Ollama légères (`num_ctx`, `num_batch`, `num_predict`, `think`, `keep_alive`), garde-fou de taille des poids, migration des préférences et formulaire mobile 360×740.
+
+**Non vérifié fonctionnellement :** aucune clé Groq personnelle n’a été fournie ou appelée ; aucun serveur Ollama n’a été installé dans le sandbox ; aucune mesure de RAM sur appareil cible n’a été effectuée ; aucun microphone, voix système, Android physique ou lancement runtime Windows utilisateur n’a été testé. La cible « moins de 4 Gio » concerne le moteur Ollama avec le profil léger, pas la RAM totale de l’appareil, et reste à mesurer. Les artefacts CI sont des builds de validation, pas des distributions signées.
+
+---
+
+## Historique phase 1
 
 Date : **2026-11-06**
 Branche : `arena/57c93823-openus`
@@ -38,7 +69,7 @@ Le sandbox local ne pouvait pas télécharger le Dart SDK nécessaire au démarr
 Aucun test fonctionnel réel n’a été effectué avec :
 
 - un serveur Ollama et un modèle local installé ;
-- une clé OpenAI ou Anthropic personnelle ;
+- une clé OpenAI, Anthropic ou Groq personnelle ;
 - un microphone, une voix système ou un appareil Android physique ;
 - le lancement runtime du bundle Windows sur un poste utilisateur ;
 - une signature release Android, une publication Play Store ou un installateur Windows.

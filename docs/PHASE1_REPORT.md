@@ -53,3 +53,17 @@ Aucun moteur IA réel, compte API payant, microphone, appareil Android physique 
 ## Prochaine action utilisateur
 
 Suivre `docs/BUILD_ANDROID.md` pour générer un premier APK debug, puis configurer Ollama ou un fournisseur personnel. Le logo officiel pourra être déposé dans `assets/branding/openus_logo.png` sans modification de l’architecture.
+
+
+## Extension livrée après la phase 1 : Groq + local léger
+
+Version **0.2.0+2**, commit de code vérifié `39bb3dca60fc67f7f77783ad74efdcc67ac6ee5b`, CI **success** : https://github.com/leoblanchart92-hub/OPENUS/actions/runs/42187728454.
+
+- Connecteur **Groq** réel (`https://api.groq.com/openai/v1`), sélectionnable dans les paramètres, clé personnelle dans un emplacement sécurisé distinct. Aucune clé n’est fournie, codée en dur ou publiée.
+- Base OpenAI-compatible réutilisée pour OpenAI et Groq, avec hôtes et identités séparés ; Anthropic conserve son schéma propre.
+- Profil local léger **Qwen3 0,6B Q4_K_M** via Ollama : `qwen3:0.6b-q4_K_M`, poids publiés ≈ 523 Mo, contexte 2048, batch 128, réponse 512 tokens, thinking Qwen3 désactivé, `keep_alive: 0`, 8 messages de contexte. Garde-fou : poids connus > 2 Gio refusés dans ce profil.
+- UI mobile : choix Groq sans débordement, champ clé masqué, copie de la commande `ollama pull`, sélection du profil et avertissement mémoire explicite.
+- **Périmètre mémoire :** la cible < 4 Gio vise le moteur Ollama avec ce profil, pas tout le PC/Android. Ollama et les poids ne sont pas embarqués dans l’APK ; sur Android, le serveur est externe. Aucune mesure RAM matérielle n’a été effectuée.
+- Vérifications CI : formatage, analyze, **32 tests**, stockage Windows, APK Android debug (79 209 424 o), bundle Windows release (13 224 543 o). Détail : [VERIFICATION.md](VERIFICATION.md) et [GROQ_AND_LOCAL.md](GROQ_AND_LOCAL.md).
+
+Reste à faire côté utilisateur : créer sa clé Groq dans l’application, installer Ollama et le modèle séparément, puis mesurer la mémoire sur l’appareil cible. Aucun compte API réel ni moteur local n’a été testé fonctionnellement dans le sandbox.
