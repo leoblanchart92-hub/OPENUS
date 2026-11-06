@@ -324,12 +324,17 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                                 OutlinedButton.icon(
                                   key: const ValueKey('local-light-preset'),
                                   onPressed: busy ? null : _applyLightPreset,
-                                  icon: const Icon(Icons.speed_rounded, size: 17),
+                                  icon: const Icon(
+                                    Icons.speed_rounded,
+                                    size: 17,
+                                  ),
                                   label: const Text('Choisir ce profil'),
                                 ),
                                 TextButton.icon(
                                   onPressed: () async {
-                                    final messenger = ScaffoldMessenger.of(context);
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
                                     await Clipboard.setData(
                                       const ClipboardData(
                                         text: LocalModelProfile.pullCommand,
@@ -341,7 +346,10 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                                       ),
                                     );
                                   },
-                                  icon: const Icon(Icons.copy_rounded, size: 16),
+                                  icon: const Icon(
+                                    Icons.copy_rounded,
+                                    size: 16,
+                                  ),
                                   label: const Text('Copier la commande'),
                                 ),
                               ],
@@ -514,7 +522,10 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                         ),
                         const SelectableText(
                           'https://console.groq.com/keys',
-                          style: TextStyle(fontSize: 11, color: OpenUsColors.blue),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: OpenUsColors.blue,
+                          ),
                         ),
                       ],
                       const SizedBox(height: 12),

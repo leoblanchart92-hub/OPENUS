@@ -17,7 +17,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'fakes.dart';
 
 void main() {
-  testWidgets('mobile settings save an isolated Groq key and light preset', (tester) async {
+  testWidgets('mobile settings save an isolated Groq key and light preset', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(360, 740);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -59,9 +61,14 @@ void main() {
     await tester.pump();
     await tester.tap(groq);
     await tester.pump();
-    final model = tester.widget<TextFormField>(find.byKey(const ValueKey('model-groq')));
+    final model = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('model-groq')),
+    );
     expect(model.controller!.text, 'llama-3.1-8b-instant');
-    await tester.enterText(find.byKey(const ValueKey('api-key-field')), 'test-only-key');
+    await tester.enterText(
+      find.byKey(const ValueKey('api-key-field')),
+      'test-only-key',
+    );
     await tester.pump();
     final saveKey = find.byKey(const ValueKey('save-api-key'));
     await tester.ensureVisible(saveKey);
@@ -71,7 +78,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(credentials.values[CloudProvider.groq], 'test-only-key');
     expect(credentials.values[CloudProvider.openAi], isNull);
-    expect(settings.settings.toJson().toString(), isNot(contains('test-only-key')));
+    expect(
+      settings.settings.toJson().toString(),
+      isNot(contains('test-only-key')),
+    );
 
     final preset = find.byKey(const ValueKey('local-light-preset'));
     await tester.ensureVisible(preset);
@@ -79,7 +89,9 @@ void main() {
     await tester.tap(preset);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    final localModel = tester.widget<TextFormField>(find.byKey(const ValueKey('local-model-field')));
+    final localModel = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('local-model-field')),
+    );
     expect(localModel.controller!.text, LocalModelProfile.recommendedModel);
     final save = find.text('Enregistrer la configuration');
     await tester.ensureVisible(save);

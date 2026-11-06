@@ -43,13 +43,17 @@ void main() {
     expect(preset.contextMessages, 8);
     expect(preset.provider, CloudProvider.openAi);
     final restored = AppSettings.fromJson(
-      preset.copyWith(provider: CloudProvider.groq, groqModel: 'groq-model').toJson(),
+      preset
+          .copyWith(provider: CloudProvider.groq, groqModel: 'groq-model')
+          .toJson(),
     );
     expect(restored.provider, CloudProvider.groq);
     expect(restored.groqModel, 'groq-model');
     expect(restored.localLowMemoryMode, isTrue);
     expect(
-      AppSettings.fromJson({'localLowMemoryMode': 'corrupt'}).localLowMemoryMode,
+      AppSettings.fromJson({
+        'localLowMemoryMode': 'corrupt',
+      }).localLowMemoryMode,
       isFalse,
     );
   });
