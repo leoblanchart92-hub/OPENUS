@@ -4,9 +4,8 @@ import '../../domain/ai.dart';
 /// Real Ollama HTTP integration. Ollama itself is NOT bundled or installed.
 /// Android localhost means the phone: use a LAN HTTPS/HTTP origin or adb reverse.
 class OllamaEngine implements AiEngine {
-  OllamaEngine({required String baseUrl, required HttpJsonClient http})
-    : _base = baseUrl.trim().replaceAll(RegExp(r'/+$'), ''),
-      _http = http;
+  OllamaEngine({required String baseUrl, required this._http})
+    : _base = baseUrl.trim().replaceAll(RegExp(r'/+$'), '');
   final String _base;
   final HttpJsonClient _http;
   @override

@@ -6,13 +6,11 @@ import '../domain/app_settings.dart';
 
 class SettingsController extends ChangeNotifier {
   SettingsController({
-    required SettingsRepository repository,
-    required CredentialStore credentials,
+    required this._repository,
+    required this._credentials,
     required AppSettings initial,
     String? warning,
-  }) : _repository = repository,
-       _credentials = credentials,
-       _settings = initial,
+  }) : _settings = initial,
        _notice = warning;
   final SettingsRepository _repository;
   final CredentialStore _credentials;

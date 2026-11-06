@@ -167,7 +167,8 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                           onPressed: busy || voice.busy
                               ? null
                               : () async {
-                                  final voiceController = context.read<VoiceController>();
+                                  final voiceController = context
+                                      .read<VoiceController>();
                                   if (await _save() && mounted) {
                                     if (voice.speaking) {
                                       await voice.stopSpeaking();

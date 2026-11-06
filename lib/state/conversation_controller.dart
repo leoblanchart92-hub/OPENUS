@@ -9,13 +9,11 @@ import '../services/ai/engine_router.dart';
 
 class ConversationController extends ChangeNotifier {
   ConversationController({
-    required ConversationRepository repository,
-    required EngineRouter router,
-    required AppSettings Function() settings,
+    required this._repository,
+    required this._router,
+    required this._settings,
     this.onEngineSuccess,
-  }) : _repository = repository,
-       _router = router,
-       _settings = settings;
+  });
   final ConversationRepository _repository;
   final EngineRouter _router;
   final AppSettings Function() _settings;
