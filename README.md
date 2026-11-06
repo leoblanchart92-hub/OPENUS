@@ -118,7 +118,9 @@ assets/branding/ emplacement du logo officiel
 .github/workflows/ci.yml
 ```
 
-Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) et [docs/PHASE1_REPORT.md](docs/PHASE1_REPORT.md).
+Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md), [docs/PHASE1_REPORT.md](docs/PHASE1_REPORT.md) et [docs/VERIFICATION.md](docs/VERIFICATION.md).
+
+État vérifié : analyse, tests, APK Android debug et bundle Windows release compilés avec succès par la CI GitHub. Les essais avec moteurs IA réels et périphériques vocaux restent à effectuer.
 
 ## Logo officiel
 
