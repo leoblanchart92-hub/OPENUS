@@ -10,12 +10,12 @@ class MemoryRepository implements ConversationRepository {
   int writes = 0;
   @override
   Future<List<Conversation>> load() async =>
-      saved.map(Conversation.fromJson).toList();
+      saved.map((c) => Conversation.fromJson(c.toJson())).toList();
   @override
   Future<void> saveAll(List<Conversation> conversations) async {
     if (failWrites) throw const StorageFailure('Disk unavailable');
     writes++;
-    saved = conversations.map(Conversation.fromJson).toList();
+    saved = conversations.map((c) => Conversation.fromJson(c.toJson())).toList();
   }
 }
 

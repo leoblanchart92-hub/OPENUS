@@ -70,13 +70,14 @@ class _OpenUsBootstrapState extends State<OpenUsBootstrap> {
         warning: loaded.warning,
       );
       final conversationRepository = JsonConversationRepository(directory);
-      late AvailabilityController availability;
+      AvailabilityController? observer;
       final router = EngineRouter(
         credentials: credentials,
         http: HttpJsonClient(http.Client.new),
-        onProbe: availability.record,
+        onProbe: (kind, probe) => observer?.record(kind, probe),
       );
-      availability = AvailabilityController(router, credentials);
+      final availability = AvailabilityController(router, credentials);
+      observer = availability;
       final conversations = ConversationController(
         repository: conversationRepository,
         router: router,

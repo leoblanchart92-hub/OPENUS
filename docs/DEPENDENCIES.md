@@ -1,13 +1,13 @@
 # Dépendances et compatibilité
 
-Vérification documentaire effectuée le 2026-11-06. Les contraintes sont dans `pubspec.yaml`. `flutter pub get` est exécuté par la CI avec Flutter 3.44.9 ; les versions transitive exactes sont celles du journal de résolution de cette exécution. Ne pas prétendre qu’un lockfile a été généré localement s’il ne figure pas dans le dépôt.
+Vérification documentaire effectuée le 2026-11-06. Les contraintes sont dans `pubspec.yaml` et les versions résolues sont verrouillées dans `pubspec.lock`. `flutter pub get` est exécuté par la CI avec Flutter 3.44.9 ; les versions transitive exactes sont celles du journal de résolution de cette exécution. Le lockfile est généré par la CI puis versionné sur la branche de session ; il n’a pas été résolu localement dans le sandbox.
 
 | paquet | contrainte | usage | Android | Windows |
 |---|---|---|---|---|
 | provider | ^6.1.5 | injection et état | Dart pur | Dart pur |
 | http | ^1.6.0 | APIs IA et annulation | oui | oui |
 | shared_preferences | ^2.5.6 | préférences non sensibles | oui | oui |
-| flutter_secure_storage | ^10.3.4 | clés API | Keystore / prefs chiffrées | AES-GCM + Credential Manager, ATL requis |
+| flutter_secure_storage | ^10.3.4 | clés API | Keystore / chiffrements personnalisés v10 | AES-GCM + Credential Manager, ATL requis |
 | path_provider | ^2.1.5 | répertoire privé | oui | oui |
 | speech_to_text | ^7.3.0 | dictée native | oui | oui, expérimental |
 | flutter_tts | ^4.2.5 | synthèse native | oui | oui |

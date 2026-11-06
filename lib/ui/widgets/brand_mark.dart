@@ -57,7 +57,7 @@ class _MarkPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.4
-      ..strokeJoin = JoinStyle.round
+      ..strokeJoin = StrokeJoin.round
       ..shader = LinearGradient(
         colors: [color, OpenUsColors.blue],
       ).createShader(const Rect.fromLTWH(0, 0, 48, 48));

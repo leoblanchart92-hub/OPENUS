@@ -15,7 +15,7 @@ class SecureCredentialStore implements CredentialStore {
     : _storage =
           storage ??
           const FlutterSecureStorage(
-            aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            aOptions: AndroidOptions(),
             wOptions: WindowsOptions(),
           );
   final FlutterSecureStorage _storage;

@@ -24,6 +24,17 @@ for name in args.files:
         with open(summary_path, 'a', encoding='utf-8') as summary:
             summary.write(f'\n## {path.name}\n\n```text\n{text[-45000:]}\n```\n')
     if args.annotate:
-        # Workflow-command escaping; annotations have a bounded message size.
-        message = quote(text[-12000:], safe='')
-        print(f'::error title={path.name} verification output::{message}')
+        # GitHub truncates long annotation messages. Keep complete failure blocks
+        # in small chunks, preserving line boundaries where possible.
+        chunks = []
+        current = ''
+        for line in text[-45000:].splitlines(keepends=True):
+            if len(current) + len(line) > 750 and current:
+                chunks.append(current)
+                current = ''
+            current += line[:750]
+        if current:
+            chunks.append(current)
+        for index, chunk in enumerate(chunks, 1):
+            message = quote(chunk, safe='')
+            print(f'::error title={path.name} output {index}/{len(chunks)}::{message}')

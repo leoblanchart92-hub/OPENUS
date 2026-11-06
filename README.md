@@ -91,7 +91,7 @@ Les frais, quotas et politiques de traitement des données du fournisseur s’ap
 
 - Aucune télémétrie OPENUS, aucun compte OPENUS, aucune synchronisation cloud des conversations.
 - Les conversations sont stockées dans le répertoire privé de l’application, **non chiffrées par OPENUS**. La protection du système/compte utilisateur reste nécessaire.
-- Les clés sont dans Android Keystore via les préférences chiffrées du plugin, et dans le mécanisme AES-GCM / Credential Manager du plugin Windows. Elles ne sont pas dans `shared_preferences`, les conversations, les URLs ou le code source.
+- Les clés sont dans les chiffrements personnalisés du plugin Android adossés à Android Keystore, et dans le mécanisme AES-GCM / Credential Manager du plugin Windows. Elles ne sont pas dans `shared_preferences`, les conversations, les URLs ou le code source.
 - Le champ de clé ne recharge jamais une clé enregistrée. Les erreurs HTTP ne contiennent ni corps de réponse ni en-têtes d’authentification.
 - HTTP est limité par validation aux origines locales ; les fournisseurs Internet utilisent HTTPS. Android autorise le cleartext au niveau du manifest pour les serveurs locaux arbitraires : durcir cette politique avant une distribution large.
 - Le micro n’est activé qu’à la demande. OPENUS ne conserve pas de fichier audio. Le service de reconnaissance Android peut utiliser le réseau.

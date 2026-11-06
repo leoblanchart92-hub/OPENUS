@@ -33,6 +33,8 @@ jobs:
           cache: true
       - run: flutter --version
       - run: flutter pub get
+      - name: Apply safe Dart lint fixes
+        run: dart fix --apply
       - name: Canonical Dart formatting
         run: dart format lib test
       - name: Preserve formatting and resolved dependency lock on the session branch
