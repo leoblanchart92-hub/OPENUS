@@ -48,12 +48,13 @@ class OllamaEngine implements AiEngine {
   }
 
   Map<String, Object> _options(AiRequest request) {
-    final context = request.limits.contextTokens;
-    return {
+    final options = <String, Object>{
       'num_predict': request.limits.maxOutputTokens,
-      if (context != null) 'num_ctx': context,
-      if (lowMemoryMode) 'num_batch': LocalModelProfile.batchTokens,
     };
+    final context = request.limits.contextTokens;
+    if (context != null) options['num_ctx'] = context;
+    if (lowMemoryMode) options['num_batch'] = LocalModelProfile.batchTokens;
+    return options;
   }
 
   @override

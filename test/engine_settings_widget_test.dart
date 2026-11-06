@@ -90,7 +90,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     final localModel = tester.widget<TextFormField>(
-      find.byKey(const ValueKey('local-model-field')),
+      find.descendant(
+        of: find.byKey(const ValueKey('local-model-field')),
+        matching: find.byType(TextFormField),
+      ),
     );
     expect(localModel.controller!.text, LocalModelProfile.recommendedModel);
     final save = find.text('Enregistrer la configuration');
