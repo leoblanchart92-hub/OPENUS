@@ -362,12 +362,11 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
                               onPressed: busy
                                   ? null
                                   : () async {
+                                      final messenger = ScaffoldMessenger.of(context);
                                       final success = await controller
                                           .deleteKey(_provider);
                                       if (!mounted || !success) return;
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
+                                      messenger.showSnackBar(
                                         const SnackBar(
                                           content: Text(
                                             'Clé supprimée du stockage sécurisé.',

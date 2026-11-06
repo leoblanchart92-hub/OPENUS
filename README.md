@@ -8,7 +8,7 @@ Assistant personnel modulaire en **Flutter / Dart**, conçu pour **Android** et 
 
 ## Démarrage
 
-Le SDK de référence est **Flutter 3.44.9 stable**. Le projet déclare un minimum Flutter 3.38 / Dart 3.10 ; utilisez de préférence la version de la CI pour reproduire les vérifications.
+Le SDK de référence est **Flutter 3.44.9 stable**. Le projet déclare un minimum Flutter 3.44 / Dart 3.12 ; utilisez de préférence la version de la CI pour reproduire les vérifications.
 
 ```bash
 flutter --version

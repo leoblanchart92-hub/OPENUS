@@ -66,7 +66,7 @@ class AppSettings {
       final isIpv4 = octets.length == 4 && !octets.contains(null);
       if (isIpv4) {
         final a = octets[0]!, b = octets[1]!;
-        if (octets.any((n) => n < 0 || n > 255)) {
+        if (octets.any((n) => n == null || n < 0 || n > 255)) {
           return 'Adresse IPv4 invalide.';
         }
         if (a == 127 ||

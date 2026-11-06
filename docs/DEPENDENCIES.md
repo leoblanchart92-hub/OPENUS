@@ -9,7 +9,7 @@ Vérification documentaire effectuée le 2026-11-06. Les contraintes sont dans `
 | shared_preferences | ^2.5.6 | préférences non sensibles | oui | oui |
 | flutter_secure_storage | ^10.3.4 | clés API | Keystore / chiffrements personnalisés v10 | AES-GCM + Credential Manager, ATL requis |
 | path_provider | ^2.1.5 | répertoire privé | oui | oui |
-| speech_to_text | ^7.3.0 | dictée native | oui | oui, expérimental |
+| speech_to_text | ^7.5.0 | dictée native | oui | oui, expérimental |
 | flutter_tts | ^4.2.5 | synthèse native | oui | oui |
 | flutter_lints | ^6.0.0 | analyse statique | développement | développement |
 
@@ -29,7 +29,7 @@ Vérification documentaire effectuée le 2026-11-06. Les contraintes sont dans `
 
 ## Points d’attention
 
-- `speech_to_text` 7.3 introduit le support Windows encore décrit comme expérimental par son éditeur. Une compilation ne garantit pas la disponibilité du service vocal sur chaque machine.
+- `speech_to_text` 7.3 a introduit le support Windows encore décrit comme expérimental par son éditeur. Une compilation ne garantit pas la disponibilité du service vocal sur chaque machine.
 - `flutter_secure_storage` 10.3.4 nécessite les bibliothèques C++ ATL avec Visual Studio Build Tools. Son implémentation Windows récente chiffre les valeurs dans des fichiers et protège la clé via Credential Manager ; ce n’est pas simplement « une valeur dans le registre ».
 - Android doit déclarer `INTERNET`, `RECORD_AUDIO` et la visibilité du service `android.speech.RecognitionService`. Le microphone est une fonctionnalité optionnelle (`required=false`).
 - Le cleartext Android est autorisé pour les origines LAN locales. Le validateur d’origine refuse HTTP public et les URLs contenant identifiants, requête ou fragment. Ce n’est pas un pare-feu natif complet : une politique réseau plus stricte est recommandée avant publication.

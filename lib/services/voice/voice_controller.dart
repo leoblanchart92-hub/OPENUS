@@ -103,7 +103,6 @@ class VoiceController extends ChangeNotifier {
     _notify();
     try {
       await _recognition.listen(
-        localeId: _settings.voiceLocale,
         onResult: (result) {
           if (_disposed) return;
           final text = result.recognizedWords.trim();
@@ -114,6 +113,7 @@ class VoiceController extends ChangeNotifier {
           _onTranscript?.call(full);
         },
         listenOptions: stt.SpeechListenOptions(
+          localeId: _settings.voiceLocale,
           listenMode: stt.ListenMode.dictation,
           partialResults: true,
           cancelOnError: true,

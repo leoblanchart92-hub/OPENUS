@@ -167,11 +167,12 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                           onPressed: busy || voice.busy
                               ? null
                               : () async {
+                                  final voiceController = context.read<VoiceController>();
                                   if (await _save() && mounted) {
                                     if (voice.speaking) {
                                       await voice.stopSpeaking();
                                     } else {
-                                      await context.read<VoiceController>().speak(
+                                      await voiceController.speak(
                                         'Ceci est un test de la synthèse vocale OPENUS. Aucun moteur d’intelligence artificielle n’est utilisé pour ce test.',
                                       );
                                     }

@@ -2,7 +2,7 @@
 
 ## Poste de développement
 
-- Flutter stable 3.44.9 recommandé (minimum déclaré : 3.38).
+- Flutter stable 3.44.9 recommandé (minimum déclaré : 3.44).
 - JDK 17.
 - Android SDK, platform SDK 36, build-tools et NDK indiqués par `flutter doctor` pour le SDK choisi.
 - Un téléphone Android API 24+ ou un émulateur, avec débogage USB activé si nécessaire.
