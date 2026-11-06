@@ -15,7 +15,9 @@ class MemoryRepository implements ConversationRepository {
   Future<void> saveAll(List<Conversation> conversations) async {
     if (failWrites) throw const StorageFailure('Disk unavailable');
     writes++;
-    saved = conversations.map((c) => Conversation.fromJson(c.toJson())).toList();
+    saved = conversations
+        .map((c) => Conversation.fromJson(c.toJson()))
+        .toList();
   }
 }
 

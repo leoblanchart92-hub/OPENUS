@@ -11,10 +11,11 @@ class AnthropicEngine implements AiEngine {
   String get displayName => 'Anthropic';
 
   Map<String, String> _headers(String? key) {
-    if (key == null || key.trim().isEmpty)
+    if (key == null || key.trim().isEmpty) {
       throw const AiException(
         'Ajoutez votre clé Anthropic dans les paramètres.',
       );
+    }
     return {'x-api-key': key.trim(), 'anthropic-version': '2023-06-01'};
   }
 
@@ -52,16 +53,18 @@ class AnthropicEngine implements AiEngine {
       cancelToken: request.cancelToken,
     );
     final blocks = json['content'];
-    if (blocks is! List)
+    if (blocks is! List) {
       throw const AiException('Anthropic a renvoyé une réponse invalide.');
+    }
     final content = blocks
         .whereType<Map<String, dynamic>>()
         .where((b) => b['type'] == 'text')
         .map((b) => b['text'])
         .whereType<String>()
         .join('\n');
-    if (content.trim().isEmpty)
+    if (content.trim().isEmpty) {
       throw const AiException('Anthropic n’a renvoyé aucun texte exploitable.');
+    }
     return AiReply(
       content: content,
       model: json['model'] as String? ?? request.model,

@@ -99,12 +99,13 @@ class _OpenUsBootstrapState extends State<OpenUsBootstrap> {
       });
     } catch (_) {
       services?.dispose();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
           _error =
               'OPENUS ne peut pas ouvrir le stockage de cet appareil. Vérifiez les permissions et l’espace disponible, puis réessayez.';
         });
+      }
     }
   }
 
@@ -117,7 +118,7 @@ class _OpenUsBootstrapState extends State<OpenUsBootstrap> {
   @override
   Widget build(BuildContext context) {
     final services = _services;
-    if (services == null)
+    if (services == null) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'OPENUS',
@@ -160,6 +161,7 @@ class _OpenUsBootstrapState extends State<OpenUsBootstrap> {
           ),
         ),
       );
+    }
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: services.settings),

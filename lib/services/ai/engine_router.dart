@@ -110,8 +110,9 @@ class EngineRouter {
       conversation,
       settings.contextMessages,
     );
-    if (context.isEmpty)
+    if (context.isEmpty) {
       throw const AiException('Le message à envoyer est vide.');
+    }
     final reply = await selection.engine.complete(
       selection.request(context, settings.systemPrompt, token),
     );

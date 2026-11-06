@@ -63,8 +63,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
     final text = _input.text.trim();
     if (chats.generating ||
         text.isEmpty ||
-        text.length > AppInfo.maxMessageLength)
+        text.length > AppInfo.maxMessageLength) {
       return;
+    }
     final voice = context.read<VoiceController>();
     final autoSpeak = context.read<SettingsController>().settings.autoSpeak;
     if (voice.listening) await voice.stopListening();

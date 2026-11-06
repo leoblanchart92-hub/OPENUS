@@ -66,22 +66,25 @@ class AppSettings {
       final isIpv4 = octets.length == 4 && !octets.contains(null);
       if (isIpv4) {
         final a = octets[0]!, b = octets[1]!;
-        if (octets.any((n) => n < 0 || n > 255))
+        if (octets.any((n) => n < 0 || n > 255)) {
           return 'Adresse IPv4 invalide.';
+        }
         if (a == 127 ||
             a == 10 ||
             (a == 172 && b >= 16 && b <= 31) ||
             (a == 192 && b == 168) ||
-            (a == 169 && b == 254))
+            (a == 169 && b == 254)) {
           return null;
+        }
       }
       if (host == 'localhost' ||
           host == '::1' ||
           host == '[::1]' ||
           !host.contains('.') ||
           host.endsWith('.local') ||
-          host.endsWith('.lan'))
+          host.endsWith('.lan')) {
         return null;
+      }
       return 'HTTP est réservé au réseau local. Utilisez HTTPS pour un serveur distant.';
     } on FormatException {
       return 'Adresse invalide. Exemple : http://127.0.0.1:11434';

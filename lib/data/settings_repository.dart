@@ -19,8 +19,9 @@ class SettingsRepository {
     if (raw == null) return const SettingsLoadResult(AppSettings(), null);
     try {
       final value = jsonDecode(raw);
-      if (value is! Map<String, dynamic>)
+      if (value is! Map<String, dynamic>) {
         throw const FormatException('Settings envelope');
+      }
       return SettingsLoadResult(AppSettings.fromJson(value), null);
     } on FormatException {
       return const SettingsLoadResult(
@@ -36,9 +37,10 @@ class SettingsRepository {
       _key,
       jsonEncode(settings.toJson()),
     );
-    if (!saved)
+    if (!saved) {
       throw const StorageFailure(
         'Les paramètres n’ont pas pu être enregistrés.',
       );
+    }
   }
 }

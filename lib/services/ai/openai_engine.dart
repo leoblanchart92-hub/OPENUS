@@ -13,8 +13,9 @@ class OpenAiEngine implements AiEngine {
   String get displayName => 'OpenAI';
 
   Map<String, String> _headers(String? key) {
-    if (key == null || key.trim().isEmpty)
+    if (key == null || key.trim().isEmpty) {
       throw const AiException('Ajoutez votre clé OpenAI dans les paramètres.');
+    }
     return {'authorization': 'Bearer ${key.trim()}'};
   }
 

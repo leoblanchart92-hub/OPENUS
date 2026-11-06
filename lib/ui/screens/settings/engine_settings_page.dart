@@ -73,7 +73,7 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
     final messenger = ScaffoldMessenger.of(context);
     final success = await context.read<SettingsController>().update(_draft());
     if (!mounted) return false;
-    if (!quiet)
+    if (!quiet) {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -83,6 +83,7 @@ class _EngineSettingsPageState extends State<EngineSettingsPage> {
           ),
         ),
       );
+    }
     return success;
   }
 

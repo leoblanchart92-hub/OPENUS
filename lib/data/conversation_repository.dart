@@ -40,8 +40,9 @@ class JsonConversationRepository implements ConversationRepository {
           .cast<Map<String, dynamic>>()
           .map(Conversation.fromJson)
           .toList();
-      if (result.map((c) => c.id).toSet().length != result.length)
+      if (result.map((c) => c.id).toSet().length != result.length) {
         throw const FormatException('Duplicate IDs');
+      }
       return result;
     } on FormatException {
       throw const StorageFailure(

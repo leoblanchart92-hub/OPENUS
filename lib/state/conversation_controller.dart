@@ -89,8 +89,9 @@ class ConversationController extends ChangeNotifier {
     final text = input.trim();
     if (text.isEmpty ||
         text.length > AppInfo.maxMessageLength ||
-        active == null)
+        active == null) {
       return null;
+    }
     final snapshot = _settings();
     final token = AiCancelToken();
     _cancelToken = token;
@@ -164,8 +165,9 @@ class ConversationController extends ChangeNotifier {
 
   void _updateMessage(String conversationId, ChatMessage message) {
     final index = _conversations.indexWhere((c) => c.id == conversationId);
-    if (index < 0 || _disposed)
+    if (index < 0 || _disposed) {
       return; // A late response must not recreate deleted data.
+    }
     final old = _conversations[index];
     if (!old.messages.any((m) => m.id == message.id)) return;
     _upsert(

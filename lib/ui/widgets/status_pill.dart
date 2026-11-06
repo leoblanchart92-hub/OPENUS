@@ -62,8 +62,9 @@ class EngineStatusPill extends StatelessWidget {
         ? EngineKind.openAi
         : EngineKind.anthropic;
     final cloud = availability[cloudKind];
-    if (availability.busy)
+    if (availability.busy) {
       return const StatusPill(label: 'Vérification…', color: OpenUsColors.blue);
+    }
     if (settings.mode != AiMode.internet &&
         local.state == HealthState.available &&
         settings.localConfigured) {

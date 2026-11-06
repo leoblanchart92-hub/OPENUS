@@ -99,8 +99,9 @@ class HttpJsonClient {
 
 List<String> modelIds(Map<String, dynamic> json, String key) {
   final entries = json[key];
-  if (entries is! List)
+  if (entries is! List) {
     throw const AiException('Liste de modèles absente ou invalide.');
+  }
   return entries
       .whereType<Map<String, dynamic>>()
       .map((m) => m['id'] ?? m['name'])

@@ -69,9 +69,10 @@ class VoiceController extends ChangeNotifier {
           }
         },
       );
-      if (!_available)
+      if (!_available) {
         _error =
             'Aucun service de reconnaissance vocale disponible, ou permission refusée.';
+      }
       return _available;
     } catch (_) {
       _available = false;

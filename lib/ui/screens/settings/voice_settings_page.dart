@@ -34,7 +34,7 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
         speechRate: _rate,
       ),
     );
-    if (mounted)
+    if (mounted) {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -44,6 +44,7 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
           ),
         ),
       );
+    }
     return success;
   }
 
@@ -137,8 +138,9 @@ class _VoiceSettingsPageState extends State<VoiceSettingsPage> {
                       onChanged: busy
                           ? null
                           : (value) {
-                              if (value != null)
+                              if (value != null) {
                                 setState(() => _locale = value);
+                              }
                             },
                     ),
                     const SizedBox(height: 24),

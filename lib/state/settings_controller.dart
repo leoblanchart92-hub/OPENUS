@@ -34,8 +34,9 @@ class SettingsController extends ChangeNotifier {
   Future<void> initialize() async {
     for (final provider in CloudProvider.values) {
       try {
-        if (await _credentials.read(provider) != null)
+        if (await _credentials.read(provider) != null) {
           _configured.add(provider);
+        }
       } on CredentialFailure catch (error) {
         _notice = error.toString();
       }

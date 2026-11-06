@@ -86,7 +86,8 @@ class AiCancelToken {
   }
 
   void throwIfCancelled() {
-    if (_cancelled)
+    if (_cancelled) {
       throw const AiException('Génération annulée.', cancelled: true);
+    }
   }
 }

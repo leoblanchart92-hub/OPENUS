@@ -4,7 +4,6 @@ import '../../core/app_info.dart';
 import '../../core/theme/openus_theme.dart';
 import '../../state/conversation_controller.dart';
 import '../widgets/brand_mark.dart';
-import '../widgets/neon_panel.dart';
 import '../widgets/status_pill.dart';
 import 'assistant_screen.dart';
 import 'history_screen.dart';
@@ -23,8 +22,9 @@ class _HomeShellState extends State<HomeShell> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   void _navigate(WorkspacePage page) {
     setState(() => _page = page);
-    if (_scaffoldKey.currentState?.isDrawerOpen ?? false)
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       Navigator.pop(context);
+    }
   }
 
   void _newConversation() {

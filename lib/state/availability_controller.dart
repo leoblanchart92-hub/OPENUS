@@ -82,10 +82,11 @@ class AvailabilityController extends ChangeNotifier {
         final probe = await action();
         if (current()) record(kind, probe);
       } on AiException catch (error) {
-        if (current())
+        if (current()) {
           record(kind, EngineProbe(available: false, message: error.message));
+        }
       } catch (_) {
-        if (current())
+        if (current()) {
           record(
             kind,
             const EngineProbe(
@@ -94,6 +95,7 @@ class AvailabilityController extends ChangeNotifier {
                   'Vérification impossible. Consultez les paramètres du moteur.',
             ),
           );
+        }
       }
     }
 
