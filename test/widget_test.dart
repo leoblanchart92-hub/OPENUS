@@ -112,7 +112,9 @@ void main() {
       expect(find.text('Bonjour OPENUS'), findsOneWidget);
       expect(chats.active!.messages.last.status, MessageStatus.failed);
       expect(chats.active!.messages.last.content, contains('Aucun moteur'));
-      final bubbles = tester.widgetList<MessageBubble>(find.byType(MessageBubble)).toList();
+      final bubbles = tester
+          .widgetList<MessageBubble>(find.byType(MessageBubble))
+          .toList();
       expect(bubbles, hasLength(2));
       expect(bubbles.last.message.content, contains('Aucun moteur'));
       expect(tester.takeException(), isNull);
