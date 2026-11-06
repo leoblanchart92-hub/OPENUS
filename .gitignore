@@ -1,0 +1,40 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+coverage/
+*.iml
+.idea/
+.vscode/
+*.log
+
+# Machine-specific paths and generated native registrations
+android/local.properties
+android/.gradle/
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+windows/flutter/ephemeral/
+windows/flutter/generated_plugin_registrant.*
+windows/flutter/generated_plugins.cmake
+
+# Secrets, signing material and local data must never enter the repository.
+.env
+.env.*
+*.jks
+*.keystore
+*.p12
+*.pfx
+android/key.properties
+secrets/
+*.apk
+*.aab
+*.exe
+*.msix
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp

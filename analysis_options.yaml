@@ -1,0 +1,14 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - windows/flutter/ephemeral/**
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    unawaited_futures: true
+    use_build_context_synchronously: true
+    avoid_print: true
