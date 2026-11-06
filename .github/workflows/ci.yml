@@ -22,8 +22,6 @@ jobs:
     name: Analyze & test
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
@@ -33,20 +31,8 @@ jobs:
           cache: true
       - run: flutter --version
       - run: flutter pub get
-      - name: Apply safe Dart lint fixes
-        run: dart fix --apply
-      - name: Canonical Dart formatting
-        run: dart format lib test
-      - name: Preserve formatting and resolved dependency lock on the session branch
-        if: github.event_name == 'push' && github.ref == 'refs/heads/arena/57c93823-openus'
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add lib test pubspec.lock
-          if ! git diff --cached --quiet; then
-            git commit -m 'chore: preserve Dart formatting and dependency lock [skip ci]'
-            git push origin HEAD:arena/57c93823-openus
-          fi
+      - name: Check Dart formatting
+        run: dart format --output=none --set-exit-if-changed lib test
       - name: Analyze
         id: analyze
         continue-on-error: true
@@ -58,11 +44,20 @@ jobs:
       - name: Publish readable verification results
         if: always()
         run: |
-          if [ '${{ steps.analyze.outcome }}' != success ] || [ '${{ steps.test.outcome }}' != success ]; then
-            python3 .github/scripts/report_log.py analyze.log test.log --annotate
-            exit 1
+          failed=0
+          if [ '${{ steps.analyze.outcome }}' != success ]; then
+            python .github/scripts/report_log.py analyze.log --annotate
+            failed=1
+          else
+            python .github/scripts/report_log.py analyze.log
           fi
-          python3 .github/scripts/report_log.py analyze.log test.log
+          if [ '${{ steps.test.outcome }}' != success ]; then
+            python .github/scripts/report_log.py test.log --annotate
+            failed=1
+          else
+            python .github/scripts/report_log.py test.log
+          fi
+          exit "$failed"
 
   android:
     name: Android debug APK
@@ -88,10 +83,10 @@ jobs:
         if: always()
         run: |
           if [ '${{ steps.build.outcome }}' != success ]; then
-            python3 .github/scripts/report_log.py android-build.log --annotate
+            python .github/scripts/report_log.py android-build.log --annotate
             exit 1
           fi
-          python3 .github/scripts/report_log.py android-build.log
+          python .github/scripts/report_log.py android-build.log
       - uses: actions/upload-artifact@v4
         with:
           name: OPENUS-android-debug
@@ -123,10 +118,10 @@ jobs:
         shell: bash
         run: |
           if [ '${{ steps.build.outcome }}' != success ]; then
-            python3 .github/scripts/report_log.py windows-build.log --annotate
+            python .github/scripts/report_log.py windows-build.log --annotate
             exit 1
           fi
-          python3 .github/scripts/report_log.py windows-build.log
+          python .github/scripts/report_log.py windows-build.log
       - uses: actions/upload-artifact@v4
         with:
           name: OPENUS-windows-release

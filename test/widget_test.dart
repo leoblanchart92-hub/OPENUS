@@ -105,6 +105,7 @@ void main() {
     (tester) async {
       final chats = await pumpApp(tester, const Size(1280, 900));
       await tester.enterText(find.byType(TextField), 'Bonjour OPENUS');
+      await tester.pump();
       await tester.tap(find.byTooltip('Envoyer le message'));
       await tester.pump();
       await tester.pump();
