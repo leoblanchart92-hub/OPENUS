@@ -87,7 +87,7 @@ jobs:
             exit 1
           fi
           python .github/scripts/report_log.py android-build.log
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: OPENUS-android-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
@@ -130,7 +130,7 @@ jobs:
             exit 1
           }
           if (Test-Path windows-build.log) { Get-Content windows-build.log -Tail 20 }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: OPENUS-windows-release
           path: build/windows/x64/runner/Release/
