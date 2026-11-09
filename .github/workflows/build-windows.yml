@@ -3,9 +3,20 @@ name: Build Nexus AI Windows
 # Publication is authorized; remote execution still requires separate approval.
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Version à construire (ex. 0.1.1)'
+        required: true
+        default: '0.1.0'
+        type: string
+      publish_release:
+        description: 'Publier sur GitHub Releases pour activer les mises à jour intégrées'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-${{ github.workflow }}-${{ github.ref }}
@@ -22,6 +33,7 @@ jobs:
     env:
       CI: 'true'
       FLUTTER_SUPPRESS_ANALYTICS: 'true'
+      NEXUS_VERSION: ${{ inputs.release_version }}
 
     steps:
       - name: Check out sources
@@ -33,6 +45,207 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path ci-logs -Force | Out-Null
+          if ($env:NEXUS_VERSION -notmatch '^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?
+          $required = @(
+            'pubspec.yaml', 'lib/main.dart', 'analysis_options.yaml',
+            'windows/CMakeLists.txt', 'windows/flutter/CMakeLists.txt',
+            'windows/runner/CMakeLists.txt', 'windows/runner/main.cpp',
+            'windows/runner/flutter_window.cpp', 'windows/runner/flutter_window.h',
+            'windows/runner/win32_window.cpp', 'windows/runner/win32_window.h',
+            'windows/runner/utils.cpp', 'windows/runner/utils.h',
+            'windows/runner/Runner.rc', 'windows/runner/resource.h',
+            'windows/runner/runner.exe.manifest', 'windows/runner/resources/app_icon.ico',
+            'installer/windows/Nexus-AI.iss'
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path -PathType Leaf)) { throw "Missing source: $path" }
+          }
+          $rootCmake = Get-Content windows/CMakeLists.txt -Raw
+          if ($rootCmake -notmatch 'set\(BINARY_NAME "nexus_ai"\)') {
+            throw 'Unexpected executable name; review packaging paths.'
+          }
+          $cpp = Get-Content windows/runner/flutter_window.cpp -Raw
+          $dart = Get-Content lib/services/desktop_window_service.dart -Raw
+          foreach ($method in @('getCapabilities', 'setCompactMode', 'setAlwaysOnTop', 'minimizeWindow', 'restoreWindow', 'startWindowDrag')) {
+            if (-not $cpp.Contains('"' + $method + '"') -or -not $dart.Contains("'" + $method + "'")) {
+              throw "Window channel method mismatch: $method"
+            }
+          }
+          if (-not $cpp.Contains('nexus_ai/desktop_window') -or -not $dart.Contains('nexus_ai/desktop_window')) {
+            throw 'Window channel names do not match.'
+          }
+          Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, OsArchitecture |
+            Format-List | Out-File ci-logs/runner.txt
+          Get-ChildItem windows -Recurse -File | Select-Object FullName |
+            Out-File ci-logs/windows-sources.txt
+
+      - name: Install Flutter stable on the hosted runner
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          architecture: x64
+          cache: false
+
+      - name: Display SDK versions and enable Windows desktop
+        run: |
+          flutter --version 2>&1 | Tee-Object ci-logs/flutter-version.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Flutter version command failed.' }
+          dart --version 2>&1 | Tee-Object ci-logs/dart-version.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Dart version command failed.' }
+          flutter config --enable-windows-desktop 2>&1 | Tee-Object ci-logs/flutter-config.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Windows desktop configuration failed.' }
+
+      - name: Resolve dependencies
+        run: |
+          flutter pub get 2>&1 | Tee-Object ci-logs/pub-get.txt
+          if ($LASTEXITCODE -ne 0) { throw 'flutter pub get failed.' }
+          Copy-Item pubspec.lock ci-logs/pubspec.lock
+
+      - name: Analyze Dart sources
+        run: |
+          flutter analyze --no-pub 2>&1 | Tee-Object ci-logs/analyze.txt
+          if ($LASTEXITCODE -ne 0) { throw 'flutter analyze failed; build stopped.' }
+
+      - name: Run all Flutter tests
+        run: |
+          flutter test --no-pub --reporter expanded 2>&1 | Tee-Object ci-logs/tests.txt
+          if ($LASTEXITCODE -ne 0) { throw 'flutter test failed; build stopped.' }
+
+      - name: Build Windows release x64
+        run: |
+          flutter build windows --release --no-pub --dart-define=APP_VERSION=$env:NEXUS_VERSION -v 2>&1 |
+            Tee-Object ci-logs/build-windows.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Windows release build failed.' }
+
+      - name: Verify and package full release bundle
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = Join-Path $PWD 'build/windows/x64/runner/Release'
+          foreach ($file in @('nexus_ai.exe', 'flutter_windows.dll', 'data/icudtl.dat', 'data/app.so')) {
+            $path = Join-Path $release $file
+            if (-not (Test-Path $path -PathType Leaf) -or (Get-Item $path).Length -eq 0) {
+              throw "Missing or empty build output: $file"
+            }
+          }
+          if (-not (Test-Path (Join-Path $release 'data/flutter_assets') -PathType Container)) {
+            throw 'Flutter asset bundle missing.'
+          }
+          foreach ($path in @('windows/flutter/generated_plugin_registrant.h', 'windows/flutter/generated_plugin_registrant.cc', 'windows/flutter/generated_plugins.cmake', 'windows/flutter/ephemeral/generated_config.cmake')) {
+            if (-not (Test-Path $path -PathType Leaf)) { throw "Flutter generated file missing: $path" }
+          }
+          # Copy the entire bundle, including any extra native libraries/assets.
+          $dist = Join-Path $PWD 'distribution/Nexus-AI-Windows'
+          New-Item -ItemType Directory -Path $dist -Force | Out-Null
+          Copy-Item (Join-Path $release '*') $dist -Recurse -Force
+
+          # App-local MSVC runtime from Visual Studio's redistributable folder.
+          # Discover the actual CRT folder instead of parsing toolset labels such as v143 as System.Version.
+          # Do not take arbitrary runtime binaries from System32.
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          if (-not (Test-Path $vswhere)) { throw 'Visual Studio discovery tool missing.' }
+          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or -not $vs) { throw 'MSVC installation not found.' }
+          $redistRoot = Join-Path $vs 'VC/Redist/MSVC'
+          if (-not (Test-Path $redistRoot -PathType Container)) { throw 'MSVC redistributable directory missing.' }
+          $crt = Get-ChildItem $redistRoot -Directory | ForEach-Object {
+            $x64 = Join-Path $_.FullName 'x64'
+            if (Test-Path $x64 -PathType Container) {
+              Get-ChildItem $x64 -Directory -Filter 'Microsoft.VC*.CRT' -ErrorAction SilentlyContinue
+            }
+          } | Select-Object -First 1
+          if (-not $crt) { throw 'Redistributable x64 MSVC CRT directory missing.' }
+          Get-ChildItem $crt.FullName -Filter '*.dll' -File | Copy-Item -Destination $dist -Force
+          foreach ($file in @('nexus_ai.exe', 'flutter_windows.dll', 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
+            $path = Join-Path $dist $file
+            if (-not (Test-Path $path -PathType Leaf) -or (Get-Item $path).Length -eq 0) {
+              throw "Incomplete distribution: $file"
+            }
+          }
+          @(
+            'Nexus AI - Windows x64 release bundle'
+            "Source commit: $env:GITHUB_SHA"
+            'Flutter: 3.47.9 stable'
+            'Extract the entire ZIP before running nexus_ai.exe.'
+            'Target: Windows 10/11 x64; not runtime-tested on both systems by this workflow.'
+            'Groq is not enabled; replies are local demonstrations.'
+          ) | Set-Content (Join-Path $dist 'BUILD-INFO.txt')
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+          $zip = Join-Path $PWD 'artifacts/Nexus-AI-Windows.zip'
+          Compress-Archive -Path $dist -DestinationPath $zip -CompressionLevel Optimal
+          if (-not (Test-Path $zip) -or (Get-Item $zip).Length -eq 0) { throw 'ZIP creation failed.' }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            foreach ($entry in @('Nexus-AI-Windows/nexus_ai.exe', 'Nexus-AI-Windows/flutter_windows.dll', 'Nexus-AI-Windows/data/app.so', 'Nexus-AI-Windows/msvcp140.dll', 'Nexus-AI-Windows/vcruntime140.dll', 'Nexus-AI-Windows/vcruntime140_1.dll')) {
+              $found = $archive.Entries | Where-Object { $_.FullName.Replace('\', '/') -eq $entry }
+              if (-not $found -or $found.Length -eq 0) { throw "ZIP entry missing or empty: $entry" }
+            }
+          } finally { $archive.Dispose() }
+          Get-FileHash $zip -Algorithm SHA256 | Format-List | Tee-Object ci-logs/zip-sha256.txt
+          Get-ChildItem $dist -Recurse -File | Select-Object FullName, Length |
+            Out-File ci-logs/distribution-files.txt
+          "Release bundle verified: Nexus-AI-Windows.zip" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Compile Windows setup installer
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $compilerCandidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6/ISCC.exe')
+          )
+          $compiler = $compilerCandidates | Where-Object { Test-Path $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $compiler) { throw 'Inno Setup 6 compiler is not installed on the hosted runner.' }
+          & $compiler "/DMyAppVersion=$env:NEXUS_VERSION" 'installer/windows/Nexus-AI.iss' 2>&1 |
+            Tee-Object ci-logs/installer.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compilation failed.' }
+          $setup = Join-Path $PWD 'artifacts/Nexus-AI-Setup.exe'
+          if (-not (Test-Path $setup -PathType Leaf) -or (Get-Item $setup).Length -lt 102400) {
+            throw 'Setup executable is missing or unexpectedly small.'
+          }
+          Get-FileHash $setup -Algorithm SHA256 | Format-List | Tee-Object ci-logs/setup-sha256.txt
+          "Installer created: Nexus-AI-Setup.exe (version $env:NEXUS_VERSION)" >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload Windows ZIP
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Nexus-AI-Windows
+          path: artifacts/Nexus-AI-Windows.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload Windows setup
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Nexus-AI-Setup
+          path: artifacts/Nexus-AI-Setup.exe
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Publish GitHub Release for in-app updates
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = "v$env:NEXUS_VERSION"
+          gh release create $tag artifacts/Nexus-AI-Setup.exe artifacts/Nexus-AI-Windows.zip --title "Nexus AI $tag" --generate-notes
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed.' }
+          "Published GitHub Release $tag with the setup installer." >> $env:GITHUB_STEP_SUMMARY
+      - name: Preserve diagnostics even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Nexus-AI-Windows-logs
+          path: |
+            ci-logs/
+            build/windows/**/CMakeFiles/CMakeConfigureLog.yaml
+            build/windows/**/CMakeFiles/CMakeError.log
+            build/windows/**/CMakeFiles/CMakeOutput.log
+          if-no-files-found: warn
+          retention-days: 14
+) { throw "Invalid release version: $env:NEXUS_VERSION" }
           if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw 'Expected an x64 Windows runner.' }
           $required = @(
             'pubspec.yaml', 'lib/main.dart', 'analysis_options.yaml',
