@@ -7,6 +7,7 @@ import '../services/desktop_window_service.dart';
 import '../settings/settings_controller.dart';
 import '../widgets/neon_glass_card.dart';
 import '../widgets/nexus_badge.dart';
+import '../widgets/update_card.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
@@ -50,6 +51,9 @@ class SettingsScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 18),
+
+                  const UpdateCard(),
+                  const SizedBox(height: 14),
 
                   // 1. Interface & Companion
                   NeonGlassCard(

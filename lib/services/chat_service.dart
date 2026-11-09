@@ -29,6 +29,15 @@ class ChatService extends ChangeNotifier {
     if (_conversations.isNotEmpty) {
       _activeConversationId = _conversations.first.id;
     }
+    // Restored upgrade checkpoints must not collide with new message IDs.
+    for (final conversation in _conversations) {
+      for (final id in [conversation.id, ...conversation.messages.map((m) => m.id)]) {
+        final suffix = int.tryParse(id.split('-').last);
+        if (suffix != null && suffix > _idCounter) {
+          _idCounter = suffix;
+        }
+      }
+    }
   }
 
   final AiProviderService _aiProvider;
