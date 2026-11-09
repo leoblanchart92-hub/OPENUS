@@ -127,19 +127,20 @@ jobs:
           Copy-Item (Join-Path $release '*') $dist -Recurse -Force
 
           # App-local MSVC runtime from Visual Studio's redistributable folder.
+          # Discover the actual CRT folder instead of parsing toolset labels such as v143 as System.Version.
           # Do not take arbitrary runtime binaries from System32.
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
           if (-not (Test-Path $vswhere)) { throw 'Visual Studio discovery tool missing.' }
           $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
           if ($LASTEXITCODE -ne 0 -or -not $vs) { throw 'MSVC installation not found.' }
-          $versions = Get-ChildItem (Join-Path $vs 'VC/Redist/MSVC') -Directory |
-            Sort-Object { [version]$_.Name } -Descending
-          $crt = $null
-          foreach ($version in $versions) {
-            $candidate = Get-ChildItem (Join-Path $version.FullName 'x64') -Directory -Filter 'Microsoft.VC*.CRT' |
-              Select-Object -First 1
-            if ($candidate) { $crt = $candidate; break }
-          }
+          $redistRoot = Join-Path $vs 'VC/Redist/MSVC'
+          if (-not (Test-Path $redistRoot -PathType Container)) { throw 'MSVC redistributable directory missing.' }
+          $crt = Get-ChildItem $redistRoot -Directory | ForEach-Object {
+            $x64 = Join-Path $_.FullName 'x64'
+            if (Test-Path $x64 -PathType Container) {
+              Get-ChildItem $x64 -Directory -Filter 'Microsoft.VC*.CRT' -ErrorAction SilentlyContinue
+            }
+          } | Select-Object -First 1
           if (-not $crt) { throw 'Redistributable x64 MSVC CRT directory missing.' }
           Get-ChildItem $crt.FullName -Filter '*.dll' -File | Copy-Item -Destination $dist -Force
           foreach ($file in @('nexus_ai.exe', 'flutter_windows.dll', 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
