@@ -40,8 +40,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path ci-logs -Force | Out-Null
           $manifest = Get-Content pubspec.yaml -Raw
-          if ($manifest -notmatch '(?m)^version: (\d+\.\d+\.\d+)\+(\d+)
-?$') { throw 'Invalid canonical version.' }
+          if ($manifest -notmatch '(?m)^version: (\d+\.\d+\.\d+)\+(\d+)\r?$') { throw 'Invalid canonical version.' }
           "NEXUS_VERSION=$($Matches[1])" >> $env:GITHUB_ENV
           if ('${{ inputs.publish_release }}' -eq 'true' -and $env:GITHUB_REF -ne 'refs/heads/main') { throw 'Publish releases from main only.' }
           if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw 'Expected an x64 Windows runner.' }
