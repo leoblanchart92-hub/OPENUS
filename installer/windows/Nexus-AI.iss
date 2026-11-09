@@ -1,4 +1,3 @@
-#define MyAppVersion GetEnv("NEXUS_VERSION")
 #ifndef MyAppVersion
   #define MyAppVersion "0.1.0"
 #endif
