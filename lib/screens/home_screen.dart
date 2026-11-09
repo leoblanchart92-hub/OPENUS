@@ -112,7 +112,7 @@ class HomeScreen extends StatelessWidget {
                       final columns = constraints.maxWidth >= 820
                           ? 3
                           : (constraints.maxWidth >= 520 ? 2 : 1);
-                      final spacing = 12.0;
+                      const spacing = 12.0;
                       final cardWidth =
                           (constraints.maxWidth - spacing * (columns - 1)) /
                               columns;

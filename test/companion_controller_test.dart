@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexus_ai/companion/companion_controller.dart';
 import 'package:nexus_ai/companion/companion_state.dart';

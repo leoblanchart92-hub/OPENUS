@@ -48,7 +48,7 @@ class NexusCompanionPainter extends CustomPainter {
     final unit = math.min(size.width, size.height);
     final center = Offset(size.width / 2, size.height / 2);
 
-    final twoPi = math.pi * 2;
+    const twoPi = math.pi * 2;
     final motionScale = reducedMotion ? 0.25 : 1.0;
 
     final hoverWave = math.sin(phase * twoPi * profile.hoverCycles);
