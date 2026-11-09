@@ -3,9 +3,20 @@ name: Build Nexus AI Windows
 # Publication is authorized; remote execution still requires separate approval.
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Version à construire (ex. 0.1.1)'
+        required: true
+        default: '0.1.1'
+        type: string
+      publish_release:
+        description: 'Publier sur GitHub Releases pour activer les mises à jour intégrées'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-${{ github.workflow }}-${{ github.ref }}
@@ -22,6 +33,7 @@ jobs:
     env:
       CI: 'true'
       FLUTTER_SUPPRESS_ANALYTICS: 'true'
+      NEXUS_VERSION: ${{ inputs.release_version }}
 
     steps:
       - name: Check out sources
@@ -33,6 +45,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path ci-logs -Force | Out-Null
+          if ($env:NEXUS_VERSION -notmatch '^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$') { throw "Invalid release version: $env:NEXUS_VERSION" }
           if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw 'Expected an x64 Windows runner.' }
           $required = @(
             'pubspec.yaml', 'lib/main.dart', 'analysis_options.yaml',
@@ -42,7 +55,8 @@ jobs:
             'windows/runner/win32_window.cpp', 'windows/runner/win32_window.h',
             'windows/runner/utils.cpp', 'windows/runner/utils.h',
             'windows/runner/Runner.rc', 'windows/runner/resource.h',
-            'windows/runner/runner.exe.manifest', 'windows/runner/resources/app_icon.ico'
+            'windows/runner/runner.exe.manifest', 'windows/runner/resources/app_icon.ico',
+            'installer/windows/Nexus-AI.iss'
           )
           foreach ($path in $required) {
             if (-not (Test-Path $path -PathType Leaf)) { throw "Missing source: $path" }
@@ -101,7 +115,7 @@ jobs:
 
       - name: Build Windows release x64
         run: |
-          flutter build windows --release --no-pub -v 2>&1 |
+          flutter build windows --release --no-pub --dart-define=APP_VERSION=$env:NEXUS_VERSION -v 2>&1 |
             Tee-Object ci-logs/build-windows.txt
           if ($LASTEXITCODE -ne 0) { throw 'Windows release build failed.' }
 
@@ -174,6 +188,23 @@ jobs:
             Out-File ci-logs/distribution-files.txt
           "Release bundle verified: Nexus-AI-Windows.zip" >> $env:GITHUB_STEP_SUMMARY
 
+      - name: Compile Windows setup installer
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $compilerCandidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6/ISCC.exe')
+          )
+          $compiler = $compilerCandidates | Where-Object { Test-Path $_ -PathType Leaf } | Select-Object -First 1
+          if (-not $compiler) { throw 'Inno Setup 6 compiler is not installed on the hosted runner.' }
+          & $compiler "/DMyAppVersion=$env:NEXUS_VERSION" 'installer/windows/Nexus-AI.iss' 2>&1 |
+            Tee-Object ci-logs/installer.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compilation failed.' }
+          $setup = Join-Path $PWD 'artifacts/Nexus-AI-Setup.exe'
+          if (-not (Test-Path $setup -PathType Leaf) -or (Get-Item $setup).Length -lt 102400) { throw 'Setup executable is missing or unexpectedly small.' }
+          Get-FileHash $setup -Algorithm SHA256 | Format-List | Tee-Object ci-logs/setup-sha256.txt
+          "Installer created: Nexus-AI-Setup.exe (version $env:NEXUS_VERSION)" >> $env:GITHUB_STEP_SUMMARY
+
       - name: Upload Windows ZIP
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -182,6 +213,26 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+
+      - name: Upload Windows setup
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Nexus-AI-Setup
+          path: artifacts/Nexus-AI-Setup.exe
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Publish GitHub Release for in-app updates
+        if: ${{ inputs.publish_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = "v$env:NEXUS_VERSION"
+          gh release create $tag artifacts/Nexus-AI-Setup.exe artifacts/Nexus-AI-Windows.zip --title "Nexus AI $tag" --generate-notes
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed.' }
+          "Published GitHub Release $tag with the setup installer." >> $env:GITHUB_STEP_SUMMARY
 
       - name: Preserve diagnostics even on failure
         if: always()
