@@ -41,6 +41,11 @@ class UpdateService {
       !uri.hasFragment &&
       uri.path == '/$repository/releases/download/v$version/Nexus-AI-Setup.exe';
 
+  static bool trustedReleaseRedirect(Uri uri) =>
+      uri.scheme == 'https' && uri.userInfo.isEmpty &&
+      !uri.hasPort && !uri.hasFragment &&
+      uri.host == 'release-assets.githubusercontent.com';
+
   static Future<HttpClientResponse> _get(HttpClient client, Uri uri,
       {bool asset = false}) async {
     for (var redirects = 0; redirects < 4; redirects++) {
@@ -58,11 +63,10 @@ class UpdateService {
         }
         final next = uri.resolve(location);
         // GitHub's signed release storage redirect, not arbitrary HTTPS hosts.
-        if (next.scheme != 'https' || next.userInfo.isNotEmpty ||
-            next.hasPort || next.host != 'release-assets.githubusercontent.com') {
+        if (!trustedReleaseRedirect(next)) {
           throw const HttpException('Untrusted download redirect');
         }
-        await response.drain<void>();
+        await response.drain<void>().timeout(const Duration(seconds: 30));
         uri = next;
       } else {
         throw HttpException('GitHub HTTP ${response.statusCode}');
@@ -81,33 +85,37 @@ class UpdateService {
       }
       final body = await utf8.decoder.bind(response)
           .join().timeout(const Duration(seconds: 30));
-      final release = jsonDecode(body) as Map<String, dynamic>;
-      if (release['draft'] != false || release['prerelease'] != false) {
-        return null;
-      }
-      final tag = release['tag_name'] as String;
-      if (!tag.startsWith('v')) {
-        throw const FormatException('Invalid release tag');
-      }
-      final version = tag.substring(1);
-      if (!isNewer(version, await currentVersion())) {
-        return null;
-      }
-      final assets = release['assets'] as List<dynamic>;
-      final asset = assets.cast<Map<String, dynamic>>().singleWhere(
-          (item) => item['name'] == 'Nexus-AI-Setup.exe');
-      final url = Uri.parse(asset['browser_download_url'] as String);
-      final digest = asset['digest'] as String? ?? '';
-      final size = asset['size'] as int;
-      if (!officialAsset(url, version) || size < 102400 ||
-          !RegExp(r'^sha256:[a-f0-9]{64}$').hasMatch(digest)) {
-        throw const FormatException('Invalid or unverifiable official installer');
-      }
-      return UpdateInfo(version, url, size, digest.substring(7),
-          release['body'] as String? ?? 'Aucune note fournie.');
+      return parseRelease(jsonDecode(body) as Map<String, dynamic>,
+          await currentVersion());
     } finally {
       client.close(force: true);
     }
+  }
+
+  static UpdateInfo? parseRelease(Map<String, dynamic> release, String current) {
+    if (release['draft'] != false || release['prerelease'] != false) {
+      return null;
+    }
+    final tag = release['tag_name'] as String;
+    if (!tag.startsWith('v')) {
+      throw const FormatException('Invalid release tag');
+    }
+    final version = tag.substring(1);
+    if (!isNewer(version, current)) {
+      return null;
+    }
+    final assets = release['assets'] as List<dynamic>;
+    final asset = assets.cast<Map<String, dynamic>>().singleWhere(
+        (item) => item['name'] == 'Nexus-AI-Setup.exe');
+    final url = Uri.parse(asset['browser_download_url'] as String);
+    final digest = asset['digest'] as String? ?? '';
+    final size = asset['size'] as int;
+    if (!officialAsset(url, version) || size < 102400 ||
+        !RegExp(r'^sha256:[a-f0-9]{64}$').hasMatch(digest)) {
+      throw const FormatException('Invalid or unverifiable official installer');
+    }
+    return UpdateInfo(version, url, size, digest.substring(7),
+        release['body'] as String? ?? 'Aucune note fournie.');
   }
 
   static Future<void> verifyInstaller(File file, int size, String digest) async {

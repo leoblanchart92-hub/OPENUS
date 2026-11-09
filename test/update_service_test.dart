@@ -53,6 +53,93 @@ void main() {
         throwsFormatException);
   });
 
+  test('redirects are restricted to the official signed release CDN', () {
+    expect(UpdateService.trustedReleaseRedirect(Uri.parse(
+      'https://release-assets.githubusercontent.com/github-production-release-asset/file?sig=token')),
+      isTrue);
+    for (final uri in [
+      'http://release-assets.githubusercontent.com/file',
+      'https://release-assets.githubusercontent.com.evil.example/file',
+      'https://evil.example/file',
+      'https://user@release-assets.githubusercontent.com/file',
+      'https://release-assets.githubusercontent.com:444/file',
+      'https://release-assets.githubusercontent.com/file#fragment',
+      'file:///tmp/installer.exe',
+    ]) {
+      expect(UpdateService.trustedReleaseRedirect(Uri.parse(uri)), isFalse,
+        reason: uri);
+    }
+  });
+
+  Map<String, dynamic> release({String? digest, int size = 200000,
+      String url = 'https://github.com/leoblanchart92-hub/OPENUS/releases/download/v0.1.2/Nexus-AI-Setup.exe'}) => {
+    'draft': false, 'prerelease': false, 'tag_name': 'v0.1.2', 'body': 'Nouveautés',
+    'assets': [<String, dynamic>{'name': 'Nexus-AI-Setup.exe',
+      'browser_download_url': url, 'size': size,
+      'digest': digest ?? 'sha256:${List.filled(64, 'a').join()}' }],
+  };
+
+  test('release metadata fails closed on missing, duplicate or invalid assets', () {
+    final valid = UpdateService.parseRelease(release(), '0.1.1')!;
+    expect(valid.version, '0.1.2');
+    expect(valid.notes, 'Nouveautés');
+    expect(valid.size, 200000);
+    expect(UpdateService.parseRelease(release(), '0.1.2'), isNull);
+    expect(UpdateService.parseRelease(release()..['draft'] = true, '0.1.1'), isNull);
+    expect(UpdateService.parseRelease(release()..['prerelease'] = true, '0.1.1'), isNull);
+    for (final bad in [release(digest: ''), release(digest: 'sha256:abc'),
+        release(size: 0), release(size: -1),
+        release(url: 'https://evil.example/Nexus-AI-Setup.exe')]) {
+      expect(() => UpdateService.parseRelease(bad, '0.1.1'), throwsFormatException);
+    }
+    final missing = release()..['assets'] = <dynamic>[];
+    expect(() => UpdateService.parseRelease(missing, '0.1.1'), throwsStateError);
+    final duplicate = release();
+    final assets = duplicate['assets'] as List<dynamic>;
+    assets.add(assets.single);
+    expect(() => UpdateService.parseRelease(duplicate, '0.1.1'), throwsStateError);
+    final absentDigest = release();
+    ((absentDigest['assets'] as List<dynamic>).single as Map<String, dynamic>)
+        .remove('digest');
+    expect(() => UpdateService.parseRelease(absentDigest, '0.1.1'), throwsFormatException);
+  });
+
+  test('corrupt primary is not silently overwritten, even with a valid backup', () async {
+    final dir = await Directory.systemTemp.createTemp('nexus-corrupt-test-');
+    addTearDown(() async {
+      UpdateCheckpoint.restored = null;
+      await dir.delete(recursive: true);
+    });
+    final storage = File('${dir.path}/state.json');
+    const state = UpdateCheckpoint(AppSettings(), []);
+    await state.save(storage: storage);
+    await state.save(storage: storage);
+    final previous = await File('${storage.path}.previous').readAsString();
+    await storage.writeAsString('{incomplete', flush: true);
+    UpdateCheckpoint.restored = null;
+    await expectLater(UpdateCheckpoint.load(storage: storage), throwsFormatException);
+    expect(UpdateCheckpoint.restored, isNull);
+    expect(await storage.readAsString(), '{incomplete');
+    expect(await File('${storage.path}.previous').readAsString(), previous);
+  });
+
+  test('unknown checkpoint schema and unwritable storage fail visibly', () async {
+    final dir = await Directory.systemTemp.createTemp('nexus-schema-test-');
+    addTearDown(() async {
+      UpdateCheckpoint.restored = null;
+      await dir.delete(recursive: true);
+    });
+    final storage = File('${dir.path}/state.json');
+    await storage.writeAsString('{"schema":99}');
+    await expectLater(UpdateCheckpoint.load(storage: storage), throwsFormatException);
+    expect(await storage.readAsString(), '{"schema":99}');
+    // The parent is deliberately a file: this fails on Linux and Windows,
+    // independently of the hosted runner's administrative privileges.
+    await expectLater(const UpdateCheckpoint(AppSettings(), [])
+      .save(storage: File('${storage.path}/child.json')), throwsA(isA<FileSystemException>()));
+    expect(await storage.readAsString(), '{"schema":99}');
+  });
+
   test('upgrade checkpoint round-trips settings and conversations; backup survives', () async {
     final dir = await Directory.systemTemp.createTemp('nexus-checkpoint-test-');
     addTearDown(() async {

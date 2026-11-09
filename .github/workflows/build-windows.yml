@@ -4,6 +4,11 @@ name: Build Nexus AI Windows
 on:
   workflow_dispatch:
     inputs:
+      verify_installer:
+        description: 'Run installation/reinstallation/uninstallation smoke tests on the disposable runner'
+        type: boolean
+        default: false
+        required: true
       publish_release:
         description: 'Publish a stable GitHub Release (explicit opt-in)'
         type: boolean
@@ -199,6 +204,10 @@ jobs:
             "$name : $((Get-Item $path).Length) bytes; SHA256 $hash" >> $env:GITHUB_STEP_SUMMARY
           }
           $lines | Set-Content artifacts/SHA256SUMS.txt -Encoding ascii
+
+      - name: Smoke-test installer on disposable runner only
+        if: ${{ inputs.verify_installer }}
+        run: ./installer/windows/verify-installer.ps1
 
       - name: Upload installer and checksums
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
