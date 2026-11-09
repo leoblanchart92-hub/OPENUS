@@ -146,9 +146,7 @@ class ChatService extends ChangeNotifier {
     }
 
     var target = activeConversation;
-    if (target == null) {
-      target = createNewConversation(title: _deriveTitle(text));
-    }
+    target ??= createNewConversation(title: _deriveTitle(text));
 
     final userMessage = ChatMessage(
       id: _nextId('usr'),

@@ -1,0 +1,71 @@
+name: Validate Flutter
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Flutter analysis and tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: 'true'
+      FLUTTER_SUPPRESS_ANALYTICS: 'true'
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Prepare diagnostics
+        run: |
+          mkdir -p ci-logs
+          git rev-parse HEAD | tee ci-logs/commit.txt
+          # Preserve Flutter's exit code rather than tee's exit code.
+          cat > "$RUNNER_TEMP/run-flutter-check" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -uo pipefail
+          name="$1"
+          shift
+          "$@" 2>&1 | tee "ci-logs/${name}.txt"
+          result=${PIPESTATUS[0]}
+          printf '%s\n' "$result" | tee "ci-logs/${name}.exit-code.txt"
+          exit "$result"
+          SCRIPT
+          chmod +x "$RUNNER_TEMP/run-flutter-check"
+
+      - name: Install Flutter on the ephemeral hosted runner
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          architecture: x64
+          cache: false
+
+      - name: Display Flutter version
+        run: '"$RUNNER_TEMP/run-flutter-check" version flutter --version'
+
+      - name: Resolve dependencies
+        run: '"$RUNNER_TEMP/run-flutter-check" pub-get flutter pub get'
+
+      - name: Analyze all Dart sources
+        run: '"$RUNNER_TEMP/run-flutter-check" analyze flutter analyze --no-pub'
+
+      - name: Run all Flutter tests
+        run: '"$RUNNER_TEMP/run-flutter-check" test flutter test --no-pub --reporter expanded'
+
+      - name: Preserve validation diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Nexus-AI-Flutter-validation-logs
+          path: ci-logs/
+          if-no-files-found: warn
+          retention-days: 14
