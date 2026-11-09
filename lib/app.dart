@@ -9,6 +9,9 @@ import 'core/theme/nexus_theme.dart';
 import 'navigation/app_shell.dart';
 import 'services/chat_service.dart';
 import 'services/desktop_window_service.dart';
+import 'services/update_checkpoint.dart';
+import 'services/update_service.dart';
+import 'settings/app_settings.dart';
 import 'settings/settings_controller.dart';
 import 'widgets/desktop_window_feedback.dart';
 
@@ -38,14 +41,23 @@ class _NexusAiAppState extends State<NexusAiApp> {
     _companionController = CompanionController();
     _settingsController = SettingsController(
       companionController: _companionController,
+      initialSettings: UpdateCheckpoint.restored?.settings ?? const AppSettings(),
     );
     _chatService = ChatService(
+      initialConversations: UpdateCheckpoint.restored?.conversations,
       aiProvider: widget.aiProvider ?? DemoAiService(),
       companionController: _companionController,
       settingsController: _settingsController,
       speakingShowcaseDuration: widget.speakingShowcaseDuration,
     );
     _desktopWindowService = DesktopWindowService()..initialize();
+    UpdateService.beforeInstall = () async {
+      if (_chatService.isGenerating) {
+        throw StateError('Attendez la fin de la réponse avant la mise à jour.');
+      }
+      await UpdateCheckpoint(_settingsController.settings,
+          _chatService.conversations).save();
+    };
 
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -60,6 +72,7 @@ class _NexusAiAppState extends State<NexusAiApp> {
 
   @override
   void dispose() {
+    UpdateService.beforeInstall = null;
     _chatService.dispose();
     _settingsController.dispose();
     _companionController.dispose();

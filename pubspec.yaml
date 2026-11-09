@@ -3,12 +3,13 @@ description: >-
   Nexus AI — Assistant IA personnel multiplateforme avec compagnon animé,
   conçu pour Windows 10/11, Android et iOS.
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.1.1+2
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
+  crypto: ^3.0.6
   flutter:
     sdk: flutter
 
@@ -18,3 +19,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - pubspec.yaml

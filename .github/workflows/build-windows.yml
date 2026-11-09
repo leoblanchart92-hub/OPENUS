@@ -3,13 +3,24 @@ name: Build Nexus AI Windows
 # Publication is authorized; remote execution still requires separate approval.
 on:
   workflow_dispatch:
+    inputs:
+      verify_installer:
+        description: 'Run installation/reinstallation/uninstallation smoke tests on the disposable runner'
+        type: boolean
+        default: false
+        required: true
+      publish_release:
+        description: 'Publish a stable GitHub Release (explicit opt-in)'
+        type: boolean
+        default: false
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
   group: windows-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-windows:
@@ -33,6 +44,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Path ci-logs -Force | Out-Null
+          $manifest = Get-Content pubspec.yaml -Raw
+          if ($manifest -notmatch '(?m)^version: (\d+\.\d+\.\d+)\+(\d+)\r?$') { throw 'Invalid canonical version.' }
+          "NEXUS_VERSION=$($Matches[1])" >> $env:GITHUB_ENV
+          if ('${{ inputs.publish_release }}' -eq 'true' -and $env:GITHUB_REF -ne 'refs/heads/main') { throw 'Publish releases from main only.' }
           if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw 'Expected an x64 Windows runner.' }
           $required = @(
             'pubspec.yaml', 'lib/main.dart', 'analysis_options.yaml',
@@ -174,6 +189,37 @@ jobs:
             Out-File ci-logs/distribution-files.txt
           "Release bundle verified: Nexus-AI-Windows.zip" >> $env:GITHUB_STEP_SUMMARY
 
+      - name: Compile user installer and checksum both outputs
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'
+          if (-not (Test-Path $compiler)) { throw 'Inno Setup missing from hosted Windows image.' }
+          & $compiler "/DMyAppVersion=$env:NEXUS_VERSION" installer/windows/Nexus-AI.iss 2>&1 | Tee-Object ci-logs/installer.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed.' }
+          $lines = foreach ($name in @('Nexus-AI-Setup.exe', 'Nexus-AI-Windows.zip')) {
+            $path = Join-Path artifacts $name
+            if (-not (Test-Path $path) -or (Get-Item $path).Length -lt 102400) { throw "Missing/small output: $name" }
+            $hash = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
+            "$name : $((Get-Item $path).Length) bytes; SHA256 $hash" >> $env:GITHUB_STEP_SUMMARY
+          }
+          $lines | Set-Content artifacts/SHA256SUMS.txt -Encoding ascii
+
+      - name: Smoke-test installer on disposable runner only
+        if: ${{ inputs.verify_installer }}
+        run: ./installer/windows/verify-installer.ps1
+
+      - name: Upload installer and checksums
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Nexus-AI-Setup
+          path: |
+            artifacts/Nexus-AI-Setup.exe
+            artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
       - name: Upload Windows ZIP
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -195,3 +241,43 @@ jobs:
             build/windows/**/CMakeFiles/CMakeOutput.log
           if-no-files-found: warn
           retention-days: 14
+
+  publish:
+    name: Publish explicit stable Release
+    needs: build-windows
+    if: ${{ inputs.publish_release && github.ref == 'refs/heads/main' }}
+    runs-on: windows-2022
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: Nexus-AI-Setup
+          path: artifacts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: Nexus-AI-Windows
+          path: artifacts
+      - name: Verify hashes and publish without overwriting tags
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifest = Get-Content pubspec.yaml -Raw
+          if ($manifest -notmatch '(?m)^version: (\d+\.\d+\.\d+)\+(\d+)\r?$') { throw 'Invalid canonical version.' }
+          $version = $Matches[1]
+          foreach ($line in Get-Content artifacts/SHA256SUMS.txt) {
+            if ($line -notmatch '^([a-f0-9]{64})  (Nexus-AI-Setup.exe|Nexus-AI-Windows.zip)$') { throw 'Invalid checksum manifest.' }
+            $expected = $Matches[1]
+            $actual = (Get-FileHash (Join-Path artifacts $Matches[2]) -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $expected) { throw 'Artifact checksum mismatch.' }
+          }
+          $tag = "v$version"
+          gh release create $tag artifacts/Nexus-AI-Setup.exe artifacts/Nexus-AI-Windows.zip artifacts/SHA256SUMS.txt --target $env:GITHUB_SHA --title "Nexus AI $version" --generate-notes --draft
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release failed; no overwrite attempted.' }
+          gh release edit $tag --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Release remains a draft; inspect before retrying.' }
