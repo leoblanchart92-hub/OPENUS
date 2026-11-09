@@ -20,7 +20,7 @@ class _UpdateCardState extends State<UpdateCard> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _checkForUpdates(silent: true);
+      if (mounted && Platform.isWindows) _checkForUpdates(silent: true);
     });
   }
 
