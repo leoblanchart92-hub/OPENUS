@@ -33,8 +33,12 @@ function Wait-App {
   throw 'Installed app did not create a native window within 30 seconds.'
 }
 function Close-App($p) {
+  # Get-Process returns an attached Process, not one started by this object.
+  # Retain the handle before termination so ExitCode remains available.
+  $null = $p.Handle
   if (-not $p.CloseMainWindow()) { throw 'Native close request rejected.' }
   if (-not $p.WaitForExit(15000)) { throw 'App did not exit after native close.' }
+  if ($null -eq $p.ExitCode) { throw 'Harness could not retrieve application exit code.' }
   if ($p.ExitCode -ne 0) { throw "Application exited with $($p.ExitCode)" }
 }
 try {
