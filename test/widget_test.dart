@@ -2,8 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nexus_ai/ai/demo_ai_service.dart';
 import 'package:nexus_ai/app.dart';
+import 'package:nexus_ai/core/theme/nexus_theme.dart';
+import 'package:nexus_ai/widgets/nexus_badge.dart';
 
 void main() {
+  testWidgets('Status badges wrap long labels within mobile constraints',
+      (WidgetTester tester) async {
+    const label = 'Groq uniquement • Inactif';
+    await tester.pumpWidget(MaterialApp(
+      theme: NexusTheme.buildDarkTheme(),
+      home: const Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 200,
+            child: Wrap(
+              children: [NexusBadge(label: label, showDot: true)],
+            ),
+          ),
+        ),
+      ),
+    ));
+    expect(find.text(label), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    final badgeBounds = tester.getRect(find.byType(NexusBadge));
+    final labelBounds = tester.getRect(find.text(label));
+    expect(labelBounds.left, greaterThanOrEqualTo(badgeBounds.left));
+    expect(labelBounds.right, lessThanOrEqualTo(badgeBounds.right));
+    expect(labelBounds.bottom, lessThanOrEqualTo(badgeBounds.bottom));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('Desktop viewport renders sidebar and all destinations',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1280, 800);
@@ -70,6 +98,8 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 50));
 
+    expect(tester.takeException(), isNull, reason: 'Initial mobile layout');
+
     // Mobile bottom labels
     expect(find.text('Chat'), findsOneWidget);
     expect(find.text('Nyx'), findsOneWidget);
@@ -78,7 +108,7 @@ void main() {
     for (final label in ['Nyx', 'Réglages', 'Historique', 'Accueil']) {
       await tester.tap(find.text(label).last);
       await tester.pump(const Duration(milliseconds: 300));
-      expect(tester.takeException(), isNull);
+      expect(tester.takeException(), isNull, reason: 'Mobile destination: $label');
     }
 
     // Toggle compact companion view from AppBar icon
@@ -87,6 +117,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.text('Nyx Compact'), findsOneWidget);
+    expect(tester.takeException(), isNull, reason: 'Compact preview');
 
     // Expand back to full view
     await tester.tap(find.byIcon(Icons.open_in_full_rounded));
@@ -102,6 +133,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.byKey(const ValueKey<String>('chat_send_button')), findsOneWidget);
     expect(find.text('Réglages'), findsNothing);
+    expect(tester.takeException(), isNull, reason: 'Chat with keyboard');
     tester.view.resetViewInsets();
     await tester.pumpWidget(const SizedBox.shrink());
   });

@@ -50,15 +50,17 @@ class NexusBadge extends StatelessWidget {
             Icon(icon, size: 13, color: color),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
-              color: color == NexusColors.neonViolet
-                  ? NexusColors.softVioletTint
-                  : color,
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+                color: color == NexusColors.neonViolet
+                    ? NexusColors.softVioletTint
+                    : color,
+              ),
             ),
           ),
         ],
