@@ -7,7 +7,7 @@ on:
       release_version:
         description: 'Version à construire (ex. 0.1.1)'
         required: true
-        default: '0.1.0'
+        default: '0.1.1'
         type: string
       publish_release:
         description: 'Publier sur GitHub Releases pour activer les mises à jour intégrées'
